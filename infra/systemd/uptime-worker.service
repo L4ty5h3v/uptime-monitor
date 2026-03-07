@@ -1,0 +1,21 @@
+[Unit]
+Description=Uptime Monitor Worker
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/uptime-monitor
+EnvironmentFile=/opt/uptime-monitor/.env
+ExecStart=/opt/uptime-monitor/venv/bin/python -m app.worker
+Restart=always
+RestartSec=5
+
+StandardOutput=append:/var/log/uptime/worker.log
+StandardError=append:/var/log/uptime/worker.err.log
+
+User=nikolay
+Group=nikolay
+
+[Install]
+WantedBy=multi-user.target

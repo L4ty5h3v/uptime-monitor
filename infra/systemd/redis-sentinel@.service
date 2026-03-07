@@ -1,0 +1,22 @@
+[Unit]
+Description=Redis Sentinel on port %i
+After=network-online.target redis@6379.service
+Wants=network-online.target redis@6379.service
+
+[Service]
+Type=simple
+User=redis
+Group=redis
+
+ExecStart=/usr/bin/redis-server /etc/redis/sentinel-%i.conf --sentinel
+Restart=on-failure
+RestartSec=2
+
+StandardOutput=append:/var/log/redis/sentinel-%i.out.log
+StandardError=append:/var/log/redis/sentinel-%i.err.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

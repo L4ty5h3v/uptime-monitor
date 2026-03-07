@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+*.log
+*.gz
+*.dump
+*.pid
+.pytest_cache/
+.mypy_cache/
+
