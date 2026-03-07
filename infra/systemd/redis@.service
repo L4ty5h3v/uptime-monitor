@@ -1,0 +1,24 @@
+[Unit]
+Description=Redis instance on port %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=redis
+Group=redis
+
+ExecStart=/usr/bin/redis-server /etc/redis/redis-%i.conf
+Restart=on-failure
+RestartSec=2
+
+# Логи в /var/log (как просит лаба)
+StandardOutput=append:/var/log/redis/redis-%i.out.log
+StandardError=append:/var/log/redis/redis-%i.err.log
+
+# Чуть безопасности
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
