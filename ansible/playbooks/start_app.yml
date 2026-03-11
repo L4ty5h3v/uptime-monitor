@@ -1,0 +1,14 @@
+- hosts: servers
+  become: yes
+
+  tasks:
+
+    - name: start uptime-api
+      systemd:
+        name: uptime-api
+        state: started
+
+    - name: start uptime-worker
+      systemd:
+        name: uptime-worker
+        state: started

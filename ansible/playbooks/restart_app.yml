@@ -1,0 +1,15 @@
+- hosts: servers
+  become: yes
+
+  vars:
+    services:
+      - uptime-api
+      - uptime-worker
+
+  tasks:
+
+    - name: restart services
+      systemd:
+        name: "{{ item }}"
+        state: restarted
+      loop: "{{ services }}"
