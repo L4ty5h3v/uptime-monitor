@@ -1,3 +1,10 @@
-#SPDX-License-Identifier: MIT-0
----
-# handlers file for roles/app
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: restart application services
+  systemd:
+    name: "{{ item.name }}"
+    state: restarted
+  when: item.run
+  loop: "{{ services }}"
