@@ -1,3 +1,10 @@
+repo_url: "https://github.com/L4ty5h3v/uptime-monitor.git"
+repo_version: "main"
+
+app_dir: "/opt/uptime-monitor"
+app_user: "nikolay"
+app_group: "nikolay"
+
 services:
   - name: uptime-api
     run: true

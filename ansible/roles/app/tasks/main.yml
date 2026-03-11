@@ -1,11 +1,48 @@
-- name: copy units
+- name: ensure application directory exists
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+
+- name: clone or update project repository
+  git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ repo_version }}"
+    force: yes
+  become_user: "{{ app_user }}"
+
+- name: copy environment file
   copy:
-    src: "{{ item.name }}.service"
+    src: .env
+    dest: "{{ app_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0600"
+  notify: restart application services
+
+- name: install dependencies in venv
+  pip:
+    requirements: "{{ app_dir }}/requirements.txt"
+    virtualenv: "{{ app_dir }}/venv"
+    virtualenv_command: python3 -m venv
+
+- name: copy systemd units from project infra
+  copy:
+    src: "{{ app_dir }}/infra/systemd/{{ item.name }}.service"
     dest: "/etc/systemd/system/{{ item.name }}.service"
+    remote_src: true
+    owner: root
+    group: root
     mode: "0644"
   loop: "{{ services }}"
+  notify: reload systemd
 
-- name: enable services
+
+
+- name: enable and start application services
   systemd:
     name: "{{ item.name }}"
     enabled: yes
