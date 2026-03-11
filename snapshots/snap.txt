@@ -1,0 +1,50 @@
+dbus-org.freedesktop.ModemManager1.service  graphical.target.wants     network-online.target.wants     rescue.target.wants      sysinit.target.wants                 uptime-monitor.service
+dbus-org.freedesktop.resolve1.service       hibernate.target.wants     open-vm-tools.service.requires  sleep.target.wants       syslog.service                       uptime-worker.service
+dbus-org.freedesktop.timesync1.service      hybrid-sleep.target.wants  paths.target.wants              sockets.target.wants     sysstat.service.wants                vmtoolsd.service
+nikolay@vmnikolay:/etc/systemd/system$ ls -a
+.                                           dbus-org.freedesktop.timesync1.service  iscsi.service                   redis-sentinel@.service  suspend-then-hibernate.target.wants  uptime-monitor.service
+..                                          emergency.target.wants                  mdmonitor.service.wants         redis@.service           sysinit.target.wants                 uptime-worker.service
+cloud-config.target.wants                   final.target.wants                      multi-user.target.wants         rescue.target.wants      syslog.service                       vmtoolsd.service
+cloud-final.service.wants                   getty.target.wants                      network-online.target.wants     sleep.target.wants       sysstat.service.wants
+cloud-init.target.wants                     graphical.target.wants                  open-vm-tools.service.requires  sockets.target.wants     timers.target.wants
+dbus-org.freedesktop.ModemManager1.service  hibernate.target.wants                  paths.target.wants              sshd.service             uptime-api.service
+dbus-org.freedesktop.resolve1.service       hybrid-sleep.target.wants               redis-exporter.service          suspend.target.wants     uptime-migrate.service
+nikolay@vmnikolay:/etc/systemd/system$ ls -l
+total 116
+drwxr-xr-x 2 root root 4096 Aug  6  2025 cloud-config.target.wants
+drwxr-xr-x 2 root root 4096 Aug  6  2025 cloud-final.service.wants
+drwxr-xr-x 2 root root 4096 Aug  6  2025 cloud-init.target.wants
+lrwxrwxrwx 1 root root   44 Aug  6  2025 dbus-org.freedesktop.ModemManager1.service -> /usr/lib/systemd/system/ModemManager.service
+lrwxrwxrwx 1 root root   48 Aug  6  2025 dbus-org.freedesktop.resolve1.service -> /usr/lib/systemd/system/systemd-resolved.service
+lrwxrwxrwx 1 root root   49 Aug  6  2025 dbus-org.freedesktop.timesync1.service -> /usr/lib/systemd/system/systemd-timesyncd.service
+drwxr-xr-x 2 root root 4096 Feb 11 15:08 emergency.target.wants
+drwxr-xr-x 2 root root 4096 Aug  6  2025 final.target.wants
+drwxr-xr-x 2 root root 4096 Aug  6  2025 getty.target.wants
+drwxr-xr-x 2 root root 4096 Aug  6  2025 graphical.target.wants
+drwxr-xr-x 2 root root 4096 Feb 11 15:08 hibernate.target.wants
+drwxr-xr-x 2 root root 4096 Feb 11 15:08 hybrid-sleep.target.wants
+lrwxrwxrwx 1 root root   42 Aug  6  2025 iscsi.service -> /usr/lib/systemd/system/open-iscsi.service
+drwxr-xr-x 2 root root 4096 Aug  6  2025 mdmonitor.service.wants
+drwxr-xr-x 2 root root 4096 Mar 11 14:49 multi-user.target.wants
+drwxr-xr-x 2 root root 4096 Aug  6  2025 network-online.target.wants
+drwxr-xr-x 2 root root 4096 Aug  6  2025 open-vm-tools.service.requires
+drwxr-xr-x 2 root root 4096 Aug  6  2025 paths.target.wants
+-rw-r--r-- 1 root root  234 Mar  7 09:59 redis-exporter.service
+-rw-r--r-- 1 root root  479 Mar  3 14:17 redis-sentinel@.service
+-rw-r--r-- 1 root root  511 Mar  3 14:17 redis@.service
+drwxr-xr-x 2 root root 4096 Feb 11 15:08 rescue.target.wants
+drwxr-xr-x 2 root root 4096 Feb 11 15:08 sleep.target.wants
+drwxr-xr-x 2 root root 4096 Mar  3 13:59 sockets.target.wants
+lrwxrwxrwx 1 root root   35 Mar  3 13:59 sshd.service -> /usr/lib/systemd/system/ssh.service
+drwxr-xr-x 2 root root 4096 Feb 11 15:08 suspend.target.wants
+drwxr-xr-x 2 root root 4096 Feb 11 15:08 suspend-then-hibernate.target.wants
+drwxr-xr-x 2 root root 4096 Aug  6  2025 sysinit.target.wants
+lrwxrwxrwx 1 root root   39 Aug  6  2025 syslog.service -> /usr/lib/systemd/system/rsyslog.service
+drwxr-xr-x 2 root root 4096 Aug  6  2025 sysstat.service.wants
+drwxr-xr-x 2 root root 4096 Aug  6  2025 timers.target.wants
+-rw-r--r-- 1 root root  624 Mar  2 17:38 uptime-api.service
+-rw-r--r-- 1 root root  350 Mar  2 17:38 uptime-migrate.service
+-rw-r--r-- 1 root root  624 Mar 11 14:49 uptime-monitor.service
+-rw-r--r-- 1 root root  473 Mar  1 18:26 uptime-worker.service
+lrwxrwxrwx 1 root root   45 Aug  6  2025 vmtoolsd.service -> /usr/lib/systemd/system/open-vm-tools.service
+nikolay@vmnikolay:/etc/systemd/system$ 
