@@ -1,0 +1,9 @@
+services:
+  - name: uptime-api
+    run: true
+
+  - name: uptime-worker
+    run: true
+
+  - name: uptime-migrate
+    run: false

@@ -1,0 +1,15 @@
+[Unit]
+Description=Uptime Monitor DB migrations
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/uptime-monitor
+EnvironmentFile=/opt/uptime-monitor/.env
+ExecStart=/opt/uptime-monitor/venv/bin/alembic upgrade head
+User=nikolay
+Group=nikolay
+
+[Install]
+WantedBy=multi-user.target
