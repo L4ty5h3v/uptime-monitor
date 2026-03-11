@@ -1,0 +1,7 @@
+- hosts: servers
+  become: yes
+
+  tasks:
+
+    - name: check uptime
+      command: uptime

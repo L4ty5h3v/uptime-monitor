@@ -1,0 +1,14 @@
+- name: copy units
+  copy:
+    src: "{{ item.name }}.service"
+    dest: "/etc/systemd/system/{{ item.name }}.service"
+    mode: "0644"
+  loop: "{{ services }}"
+
+- name: enable services
+  systemd:
+    name: "{{ item.name }}"
+    enabled: yes
+    state: started
+  when: item.run
+  loop: "{{ services }}"

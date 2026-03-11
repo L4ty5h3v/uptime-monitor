@@ -1,0 +1,14 @@
+- name: update apt cache
+  apt:
+    update_cache: yes
+    lock_timeout: 300
+
+- name: install base packages
+  apt:
+    name:
+      - git
+      - curl
+      - python3-pip
+      - redis-server
+      - postgresql
+    state: present
