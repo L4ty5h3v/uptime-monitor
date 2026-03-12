@@ -1,29 +1,17 @@
-name: Deploy app
+name: Ansible deploy pipeline
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: self-hosted
 
-    defaults:
-      run:
-        working-directory: .
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Show runner info
-        run: |
-          uname -a
-          whoami
-          pwd
-          ls -la
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -35,19 +23,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install ansible
 
-      - name: Show ansible version
-        run: |
-          ansible --version
-          ansible-playbook --version
-
-      - name: Run deploy app playbook
+      - name: Deploy app via Ansible
         run: |
           ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/deploy_app.yml
 
-      - name: Run migration playbook
+      - name: Run migrations via Ansible
         run: |
           ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/migration.yml
 
-      - name: Run restart app playbook
+      - name: Restart app via Ansible
         run: |
           ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/restart_app.yml
