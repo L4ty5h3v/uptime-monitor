@@ -1,0 +1,11 @@
+bind 127.0.0.1
+port {{ item.port }}
+protected-mode yes
+daemonize no
+
+dir {{ redis_data_dir }}/{{ item.port }}
+logfile "{{ redis_log_dir }}/redis-{{ item.port }}.log"
+
+{% if item.role == 'replica' %}
+replicaof {{ item.replicaof_host }} {{ item.replicaof_port }}
+{% endif %}

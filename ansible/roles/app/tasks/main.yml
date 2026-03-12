@@ -40,7 +40,8 @@
   loop: "{{ services }}"
   notify: reload systemd
 
-
+- name: flush handlers before starting services
+  meta: flush_handlers
 
 - name: enable and start application services
   systemd:
