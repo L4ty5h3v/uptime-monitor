@@ -1,0 +1,101 @@
+- name: install postgres packages
+  apt:
+    name: "{{ postgres_packages }}"
+    state: present
+    update_cache: yes
+
+- name: ensure postgresql service is enabled and started
+  systemd:
+    name: "{{ postgres_service_name }}"
+    enabled: yes
+    state: started
+
+- name: ensure postgres backup directory exists
+  file:
+    path: "{{ postgres_backup_dir }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0755"
+
+- name: ensure postgres log directory exists
+  file:
+    path: "{{ postgres_log_dir }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0755"
+
+- name: ensure application scripts directory exists
+  file:
+    path: /opt/uptime-monitor/scripts
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: manage postgres database objects
+  become: yes
+  become_user: postgres
+  block:
+    - name: create postgres database user
+      community.postgresql.postgresql_user:
+        name: "{{ postgres_db_user }}"
+        password: "{{ postgres_db_password }}"
+        state: present
+
+    - name: create application database
+      community.postgresql.postgresql_db:
+        name: "{{ postgres_db_name }}"
+        owner: "{{ postgres_db_user }}"
+        state: present
+
+    - name: grant privileges on database
+      community.postgresql.postgresql_privs:
+        db: "{{ postgres_db_name }}"
+        role: "{{ postgres_db_user }}"
+        type: database
+        privs: ALL
+        state: present
+
+- name: create postgres .pgpass file
+  copy:
+    dest: /var/lib/postgresql/.pgpass
+    content: "{{ postgres_db_host }}:{{ postgres_db_port }}:{{ postgres_db_name }}:{{ postgres_db_user }}:{{ postgres_db_password }}\n"
+    owner: postgres
+    group: postgres
+    mode: "0600"
+
+- name: deploy postgres backup script
+  template:
+    src: pg_backup.sh.j2
+    dest: "{{ postgres_backup_script_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: deploy postgres backup upload script
+  template:
+    src: pg_backup_upload.sh.j2
+    dest: "{{ postgres_backup_upload_script_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+  when: postgres_enable_backup_upload
+
+- name: configure postgres backup cron job
+  cron:
+    name: "postgres backup"
+    user: postgres
+    minute: "{{ postgres_backup_cron_minute }}"
+    hour: "{{ postgres_backup_cron_hour }}"
+    job: "{{ postgres_backup_script_path }} >> {{ postgres_log_dir }}/backup.log 2>&1"
+
+- name: configure postgres backup upload cron job
+  cron:
+    name: "postgres backup upload"
+    user: postgres
+    minute: "{{ postgres_backup_upload_cron_minute }}"
+    hour: "{{ postgres_backup_upload_cron_hour }}"
+    job: "{{ postgres_backup_upload_script_path }} >> {{ postgres_log_dir }}/backup-upload.log 2>&1"
+  when: postgres_enable_backup_upload

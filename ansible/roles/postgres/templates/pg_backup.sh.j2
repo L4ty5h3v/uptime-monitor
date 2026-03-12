@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKUP_DIR="{{ postgres_backup_dir }}"
+DB_NAME="{{ postgres_db_name }}"
+PGHOST="{{ postgres_db_host }}"
+PGPORT="{{ postgres_db_port }}"
+PGUSER="{{ postgres_db_user }}"
+
+TS="$(date +%F_%H-%M-%S)"
+FILE="${BACKUP_DIR}/${DB_NAME}_${TS}.dump"
+ARCHIVE="${FILE}.gz"
+
+mkdir -p "${BACKUP_DIR}"
+
+export PGHOST PGPORT PGUSER
+
+pg_dump -Fc -d "${DB_NAME}" -f "${FILE}"
+
+pg_restore -l "${FILE}" > /dev/null
+
+gzip -f "${FILE}"
+
+find "${BACKUP_DIR}" -type f -name "*.dump.gz" -mtime +{{ postgres_backup_retention_days }} -delete
+
+echo "Backup created: ${ARCHIVE}"

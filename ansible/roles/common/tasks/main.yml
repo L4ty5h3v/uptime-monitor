@@ -11,4 +11,5 @@
       - python3-pip
       - redis-server
       - postgresql
+      - acl
     state: present

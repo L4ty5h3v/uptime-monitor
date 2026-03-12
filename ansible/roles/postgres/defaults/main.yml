@@ -1,0 +1,28 @@
+postgres_service_name: postgresql
+
+postgres_packages:
+  - postgresql
+  - postgresql-contrib
+  - python3-psycopg2
+
+postgres_db_name: uptime
+postgres_db_user: uptime
+postgres_db_password: "uptime"
+postgres_db_host: "127.0.0.1"
+postgres_db_port: 5432
+
+postgres_backup_dir: /var/backups/uptime
+postgres_log_dir: /var/log/uptime
+postgres_backup_retention_days: 7
+
+postgres_backup_script_path: /opt/uptime-monitor/scripts/pg_backup.sh
+postgres_backup_upload_script_path: /opt/uptime-monitor/scripts/pg_backup_upload.sh
+
+postgres_enable_backup_upload: true
+postgres_backup_remote: "yadisk:uptime-backups"
+
+postgres_backup_cron_minute: "0"
+postgres_backup_cron_hour: "3"
+
+postgres_backup_upload_cron_minute: "10"
+postgres_backup_upload_cron_hour: "3"
