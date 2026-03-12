@@ -1,0 +1,13 @@
+redis_exporter_version: "1.82.0"
+redis_exporter_arch: "linux-arm64"
+
+redis_exporter_user: redis-exp
+redis_exporter_group: redis-exp
+
+redis_exporter_bin_dir: /usr/local/bin
+redis_exporter_bin_path: /usr/local/bin/redis_exporter
+
+redis_exporter_listen_address: "0.0.0.0:9121"
+redis_exporter_redis_addr: "redis://127.0.0.1:6379"
+
+redis_exporter_download_url: "https://github.com/oliver006/redis_exporter/releases/download/v{{ redis_exporter_version }}/redis_exporter-v{{ redis_exporter_version }}.{{ redis_exporter_arch }}.tar.gz"

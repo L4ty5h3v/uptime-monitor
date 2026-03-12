@@ -1,0 +1,64 @@
+- name: ensure redis exporter group exists
+  group:
+    name: "{{ redis_exporter_group }}"
+    state: present
+
+- name: ensure redis exporter user exists
+  user:
+    name: "{{ redis_exporter_user }}"
+    group: "{{ redis_exporter_group }}"
+    system: yes
+    shell: /usr/sbin/nologin
+    create_home: no
+    state: present
+
+- name: ensure temporary directory for redis exporter exists
+  file:
+    path: /tmp/redis_exporter
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: download redis exporter archive
+  get_url:
+    url: "{{ redis_exporter_download_url }}"
+    dest: "/tmp/redis_exporter/redis_exporter-v{{ redis_exporter_version }}.tar.gz"
+    mode: "0644"
+
+- name: unpack redis exporter archive
+  unarchive:
+    src: "/tmp/redis_exporter/redis_exporter-v{{ redis_exporter_version }}.tar.gz"
+    dest: /tmp/redis_exporter
+    remote_src: yes
+    creates: "/tmp/redis_exporter/redis_exporter-v{{ redis_exporter_version }}.{{ redis_exporter_arch }}/redis_exporter"
+
+- name: install redis exporter binary
+  copy:
+    src: "/tmp/redis_exporter/redis_exporter-v{{ redis_exporter_version }}.{{ redis_exporter_arch }}/redis_exporter"
+    dest: "{{ redis_exporter_bin_path }}"
+    remote_src: yes
+    owner: root
+    group: root
+    mode: "0755"
+  notify: restart redis exporter
+
+- name: deploy redis exporter systemd unit
+  template:
+    src: redis-exporter.service.j2
+    dest: /etc/systemd/system/redis-exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart redis exporter
+
+- name: flush handlers before starting redis exporter
+  meta: flush_handlers
+
+- name: ensure redis exporter service is enabled and started
+  systemd:
+    name: redis-exporter
+    enabled: yes
+    state: started
