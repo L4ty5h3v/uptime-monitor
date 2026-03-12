@@ -6,6 +6,14 @@
     group: "{{ app_group }}"
     mode: "0755"
 
+- name: ensure application directory ownership is correct
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    recurse: yes
+
 - name: clone or update project repository
   git:
     repo: "{{ repo_url }}"
@@ -23,11 +31,18 @@
     mode: "0600"
   notify: restart application services
 
+- name: create python virtual environment
+  command: python3 -m venv {{ app_dir }}/venv
+  args:
+    creates: "{{ app_dir }}/venv/bin/activate"
+  become_user: "{{ app_user }}"
+
 - name: install dependencies in venv
   pip:
     requirements: "{{ app_dir }}/requirements.txt"
     virtualenv: "{{ app_dir }}/venv"
     virtualenv_command: python3 -m venv
+  become_user: "{{ app_user }}"
 
 - name: copy systemd units from project infra
   copy:

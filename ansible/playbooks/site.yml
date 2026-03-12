@@ -1,0 +1,9 @@
+- hosts: servers
+  become: yes
+
+  roles:
+    - common
+    - postgres
+    - redis
+    - app
+    - redis_exporter

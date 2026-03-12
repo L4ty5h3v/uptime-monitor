@@ -26,13 +26,6 @@
     group: postgres
     mode: "0755"
 
-- name: ensure application scripts directory exists
-  file:
-    path: /opt/uptime-monitor/scripts
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
 
 - name: manage postgres database objects
   become: yes
