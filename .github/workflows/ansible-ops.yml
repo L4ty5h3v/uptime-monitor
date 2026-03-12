@@ -1,0 +1,43 @@
+name: Ansible operations
+
+on:
+  workflow_dispatch:
+    inputs:
+      playbook:
+        description: "Choose Ansible playbook"
+        required: true
+        default: "restart_app.yml"
+        type: choice
+        options:
+          - deploy_app.yml
+          - start_app.yml
+          - stop_app.yml
+          - restart_app.yml
+          - migration.yml
+          - deploy.yml
+          - update.yml
+          - postgres.yml
+          - monitoring.yml
+          - site.yml
+
+jobs:
+  run-playbook:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Run selected Ansible playbook
+        run: |
+          ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/${{ github.event.inputs.playbook }}
