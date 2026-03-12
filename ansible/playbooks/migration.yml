@@ -3,6 +3,6 @@
 
   tasks:
     - name: run database migrations
-      command: "{{ app_dir }}/venv/bin/alembic upgrade head"
-      args:
-        chdir: "{{ app_dir }}"
+      systemd:
+        name: uptime-migrate
+        state: started
