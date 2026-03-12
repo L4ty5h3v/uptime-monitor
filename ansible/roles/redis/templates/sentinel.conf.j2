@@ -1,0 +1,10 @@
+port {{ item.port }}
+bind 127.0.0.1
+protected-mode yes
+
+sentinel monitor {{ redis_master_name }} {{ redis_master_host }} {{ redis_master_port }} {{ redis_quorum }}
+sentinel down-after-milliseconds {{ redis_master_name }} {{ sentinel_down_after_ms }}
+sentinel failover-timeout {{ redis_master_name }} {{ sentinel_failover_timeout }}
+
+logfile "{{ redis_log_dir }}/sentinel-{{ item.port }}.log"
+dir "{{ redis_data_dir }}/sentinel-{{ item.port }}"

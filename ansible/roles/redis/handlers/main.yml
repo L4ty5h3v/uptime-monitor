@@ -1,0 +1,17 @@
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: restart redis instances
+  systemd:
+    name: "redis@{{ item.port }}"
+    state: restarted
+  loop: "{{ redis_instances }}"
+  listen: restart redis instances
+
+- name: restart sentinel instances
+  systemd:
+    name: "redis-sentinel@{{ item.port }}"
+    state: restarted
+  loop: "{{ sentinel_instances }}"
+  listen: restart sentinel instances

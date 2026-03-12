@@ -1,0 +1,15 @@
+[Unit]
+Description=Redis instance on port %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ redis_user }}
+Group={{ redis_group }}
+ExecStart=/usr/bin/redis-server {{ redis_conf_dir }}/redis-%i.conf
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

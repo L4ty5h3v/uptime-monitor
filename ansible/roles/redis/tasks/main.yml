@@ -1,0 +1,88 @@
+- name: ensure redis config directory exists
+  file:
+    path: "{{ redis_conf_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: ensure redis log directory exists
+  file:
+    path: "{{ redis_log_dir }}"
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+
+- name: ensure redis data directories exist
+  file:
+    path: "{{ redis_data_dir }}/{{ item.port }}"
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+  loop: "{{ redis_instances }}"
+
+- name: ensure sentinel data directories exist
+  file:
+    path: "{{ redis_data_dir }}/sentinel-{{ item.port }}"
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0755"
+  loop: "{{ sentinel_instances }}"
+
+- name: deploy redis configs
+  template:
+    src: redis.conf.j2
+    dest: "{{ redis_conf_dir }}/redis-{{ item.port }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ redis_instances }}"
+  notify: restart redis instances
+
+- name: deploy sentinel configs
+  template:
+    src: sentinel.conf.j2
+    dest: "{{ redis_conf_dir }}/sentinel-{{ item.port }}.conf"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    mode: "0644"
+  loop: "{{ sentinel_instances }}"
+  notify: restart sentinel instances
+
+- name: deploy redis unit
+  template:
+    src: redis@.service.j2
+    dest: /etc/systemd/system/redis@.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload systemd
+
+- name: deploy redis-sentinel unit
+  template:
+    src: redis-sentinel@.service.j2
+    dest: /etc/systemd/system/redis-sentinel@.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload systemd
+
+- name: flush handlers before starting redis services
+  meta: flush_handlers
+
+- name: ensure redis instances are enabled and started
+  systemd:
+    name: "redis@{{ item.port }}"
+    enabled: yes
+    state: started
+  loop: "{{ redis_instances }}"
+
+- name: ensure sentinel instances are enabled and started
+  systemd:
+    name: "redis-sentinel@{{ item.port }}"
+    enabled: yes
+    state: started
+  loop: "{{ sentinel_instances }}"
