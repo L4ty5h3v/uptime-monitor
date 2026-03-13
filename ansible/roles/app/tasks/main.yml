@@ -55,6 +55,23 @@
   loop: "{{ services }}"
   notify: reload systemd
 
+
+- name: ensure application log directory exists
+  file:
+    path: "{{ app_log_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+
+- name: deploy logrotate config for application
+  template:
+    src: uptime-app.logrotate.j2
+    dest: /etc/logrotate.d/uptime-app
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: flush handlers before starting services
   meta: flush_handlers
 
