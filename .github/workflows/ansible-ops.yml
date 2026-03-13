@@ -41,4 +41,4 @@ jobs:
       - name: Run selected Ansible playbook
         run: |
           cd ansible
-          ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/${{ github.event.inputs.playbook }}
+          ansible-playbook playbooks/${{ github.event.inputs.playbook }}
