@@ -14,7 +14,7 @@
     group: "{{ app_group }}"
     recurse: yes
 
-- nae: clone or update project repository
+- nae: clone or update project repositoryy
   git:
     repo: "{{ repo_url }}"
     dest: "{{ app_dir }}"
