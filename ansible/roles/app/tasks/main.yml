@@ -67,7 +67,7 @@
 - name: deploy logrotate config for application
   template:
     src: uptime-app.logrotate.j2
-    dest: /etc/logrotate.d/uptime-app
+    dest: /etc/logrotate.d/uptime-monitor
     owner: root
     group: root
     mode: "0644"
