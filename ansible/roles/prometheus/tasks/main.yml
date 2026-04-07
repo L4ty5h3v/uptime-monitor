@@ -46,11 +46,11 @@
     src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
     dest: /tmp
     remote_src: yes
-    creates: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus"
+    creates: "/tmp/prometheus-{{ prometheus_version }}.linux-arm64/prometheus"
 
 - name: copy prometheus binary
   copy:
-    src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus"
+    src: "/tmp/prometheus-{{ prometheus_version }}.linux-arm64/prometheus"
     dest: "{{ prometheus_install_dir }}/prometheus"
     remote_src: yes
     owner: "{{ prometheus_user }}"
@@ -60,7 +60,7 @@
 
 - name: copy promtool binary
   copy:
-    src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/promtool"
+    src: "/tmp/prometheus-{{ prometheus_version }}.linux-arm64/promtool"
     dest: "{{ prometheus_install_dir }}/promtool"
     remote_src: yes
     owner: "{{ prometheus_user }}"
