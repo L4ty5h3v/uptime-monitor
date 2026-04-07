@@ -3,3 +3,4 @@
 
   roles:
     - app
+    - prometheus
