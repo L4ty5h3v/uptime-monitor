@@ -1,3 +1,7 @@
+- name: debug prometheus download url
+  debug:
+    msg: "{{ prometheus_download_url }}"
+
 - name: ensure prometheus group exists
   group:
     name: "{{ prometheus_group }}"
