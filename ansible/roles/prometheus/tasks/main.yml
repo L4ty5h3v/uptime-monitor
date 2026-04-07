@@ -67,24 +67,6 @@
     group: "{{ prometheus_group }}"
     mode: "0755"
 
-- name: copy consoles directory
-  copy:
-    src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/consoles/"
-    dest: "{{ prometheus_config_dir }}/consoles/"
-    remote_src: yes
-    owner: "{{ prometheus_user }}"
-    group: "{{ prometheus_group }}"
-    mode: "0755"
-
-- name: copy console_libraries directory
-  copy:
-    src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/console_libraries/"
-    dest: "{{ prometheus_config_dir }}/console_libraries/"
-    remote_src: yes
-    owner: "{{ prometheus_user }}"
-    group: "{{ prometheus_group }}"
-    mode: "0755"
-
 - name: copy prometheus config from deployed project
   copy:
     src: "{{ app_dir }}/infra/prometheus/prometheus.yml"
