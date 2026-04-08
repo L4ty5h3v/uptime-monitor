@@ -4,3 +4,4 @@
   roles:
     - app
     - prometheus
+    - node_exporter
