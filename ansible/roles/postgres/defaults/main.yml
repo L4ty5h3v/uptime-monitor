@@ -15,6 +15,8 @@ postgres_backup_dir: /var/backups/uptime
 postgres_log_dir: /var/log/uptime
 postgres_backup_retention_days: 7
 
+postgres_backup_log_dir: /var/log/postgres-backup
+
 postgres_backup_script_path: /usr/local/bin/pg_backup.sh
 postgres_backup_upload_script_path: /usr/local/bin/pg_backup_upload.sh
 
@@ -26,3 +28,4 @@ postgres_backup_cron_hour: "3"
 
 postgres_backup_upload_cron_minute: "10"
 postgres_backup_upload_cron_hour: "3"
+
