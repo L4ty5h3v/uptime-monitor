@@ -59,10 +59,9 @@
   template:
     src: node_exporter.service.j2
     dest: /etc/systemd/system/node_exporter.service
-    owner: root
-    group: root
-    mode: "0644"
-  notify: reload systemd
+  notify:
+    - reload systemd
+    - restart node_exporter
 
 - name: flush handlers before starting node_exporter
   meta: flush_handlers
