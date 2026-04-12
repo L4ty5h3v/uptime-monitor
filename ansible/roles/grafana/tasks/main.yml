@@ -1,0 +1,65 @@
+- name: install required packages for grafana repo
+  apt:
+    name:
+      - apt-transport-https
+      - software-properties-common
+      - wget
+      - gnupg
+    state: present
+    update_cache: yes
+
+- name: ensure grafana keyrings directory exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: download grafana gpg key
+  get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /tmp/grafana.gpg.key
+    mode: "0644"
+
+- name: install grafana gpg key
+  shell: |
+    gpg --dearmor < /tmp/grafana.gpg.key > /etc/apt/keyrings/grafana.gpg
+  args:
+    creates: /etc/apt/keyrings/grafana.gpg
+
+- name: configure grafana apt repository
+  copy:
+    dest: /etc/apt/sources.list.d/grafana.list
+    content: |
+      deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: install grafana
+  apt:
+    name: "{{ grafana_package_name }}"
+    state: present
+    update_cache: yes
+
+- name: ensure grafana datasource directory exists
+  file:
+    path: "{{ grafana_datasource_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: deploy prometheus datasource provisioning
+  template:
+    src: prometheus-datasource.yml.j2
+    dest: "{{ grafana_datasource_dir }}/prometheus.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart grafana
+
+- name: ensure grafana is enabled and started
+  systemd:
+    name: "{{ grafana_service_name }}"
+    enabled: yes
+    state: started
