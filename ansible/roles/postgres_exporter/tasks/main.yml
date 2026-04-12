@@ -1,0 +1,99 @@
+- name: install required packages
+  apt:
+    name:
+      - tar
+      - python3-psycopg2
+    state: present
+    update_cache: yes
+
+- name: create postgres exporter db user
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ postgres_exporter_db_user }}"
+    password: "{{ postgres_exporter_db_password }}"
+    state: present
+
+- name: grant connect on postgres database
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_privs:
+    db: "{{ postgres_exporter_db_name }}"
+    role: "{{ postgres_exporter_db_user }}"
+    type: database
+    privs: CONNECT
+    state: present
+
+- name: grant pg_monitor role
+  become: yes
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    db: postgres
+    query: "GRANT pg_monitor TO {{ postgres_exporter_db_user }};"
+  ignore_errors: true
+
+- name: download postgres exporter
+  get_url:
+    url: "{{ postgres_exporter_download_url }}"
+    dest: "/tmp/postgres_exporter.tar.gz"
+    mode: "0644"
+    force: false
+
+- name: unpack postgres exporter
+  unarchive:
+    src: "/tmp/postgres_exporter.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+    creates: "/tmp/postgres_exporter-{{ postgres_exporter_version }}.{{ postgres_exporter_arch }}/postgres_exporter"
+
+- name: install postgres exporter binary
+  copy:
+    src: "/tmp/postgres_exporter-{{ postgres_exporter_version }}.{{ postgres_exporter_arch }}/postgres_exporter"
+    dest: "{{ postgres_exporter_bin_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: yes
+  notify: restart postgres_exporter
+
+- name: create postgres exporter env file
+  copy:
+    dest: "{{ postgres_exporter_env_file }}"
+    content: |
+      DATA_SOURCE_NAME="{{ postgres_exporter_dsn }}"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: restart postgres_exporter
+
+- name: create postgres exporter systemd service
+  copy:
+    dest: "/etc/systemd/system/{{ postgres_exporter_service_name }}.service"
+    content: |
+      [Unit]
+      Description=PostgreSQL Exporter for Prometheus
+      After=network.target postgresql.service
+      Wants=network.target
+
+      [Service]
+      Type=simple
+      User=postgres
+      Group=postgres
+      EnvironmentFile={{ postgres_exporter_env_file }}
+      ExecStart={{ postgres_exporter_bin_path }} --web.listen-address={{ postgres_exporter_listen_address }}
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart postgres_exporter
+
+- name: enable and start postgres exporter
+  systemd:
+    name: "{{ postgres_exporter_service_name }}"
+    enabled: yes
+    state: started
+    daemon_reload: yes
