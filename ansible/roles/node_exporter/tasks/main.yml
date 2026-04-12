@@ -19,6 +19,14 @@
     group: "{{ node_exporter_group }}"
     mode: "0755"
 
+- name: ensure node exporter textfile collector directory exists
+  file:
+    path: "{{ node_exporter_textfile_dir }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0755"
+
 - name: download node_exporter archive
   get_url:
     url: "{{ node_exporter_download_url }}"
