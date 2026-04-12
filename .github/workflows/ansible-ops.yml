@@ -19,6 +19,7 @@ on:
           - postgres.yml
           - monitoring.yml
           - site.yml
+          - node_exporter.yml
 
 jobs:
   run-playbook:
