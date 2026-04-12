@@ -1,5 +1,5 @@
 postgres_exporter_version: "0.19.1"
-postgres_exporter_arch: "linux-amd64"
+postgres_exporter_arch: "linux-arm64"
 
 postgres_exporter_service_name: "postgres_exporter"
 postgres_exporter_bin_path: "/usr/local/bin/postgres_exporter"
