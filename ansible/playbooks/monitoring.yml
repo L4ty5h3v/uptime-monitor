@@ -6,3 +6,4 @@
     - prometheus
     - node_exporter
     - grafana
+    - postgres_exportet
