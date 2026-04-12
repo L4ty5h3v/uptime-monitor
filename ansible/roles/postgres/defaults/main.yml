@@ -29,3 +29,4 @@ postgres_backup_cron_hour: "3"
 postgres_backup_upload_cron_minute: "10"
 postgres_backup_upload_cron_hour: "3"
 
+node_exporter_textfile_dir: /var/lib/node_exporter/textfile_collector
