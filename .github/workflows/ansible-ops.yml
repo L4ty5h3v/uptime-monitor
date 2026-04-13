@@ -20,6 +20,7 @@ on:
           - monitoring.yml
           - site.yml
           - node_exporter.yml
+          - elasticsearch_install.yml
 
 jobs:
   run-playbook:
