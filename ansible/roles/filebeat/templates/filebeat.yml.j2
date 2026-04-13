@@ -1,0 +1,9 @@
+filebeat.inputs:
+  - type: filestream
+    id: uptime-app-logs
+    enabled: true
+    paths:
+      - /var/log/uptime/*.log
+
+output.logstash:
+  hosts: ["127.0.0.1:5044"]
