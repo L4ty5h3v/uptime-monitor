@@ -1,0 +1,20 @@
+- name: install logstash
+  apt:
+    name: logstash
+    state: present
+    update_cache: yes
+
+- name: deploy logstash config
+  template:
+    src: logstash.conf.j2
+    dest: /etc/logstash/conf.d/logstash.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart logstash
+
+- name: enable and start logstash
+  systemd:
+    name: logstash
+    enabled: yes
+    state: started

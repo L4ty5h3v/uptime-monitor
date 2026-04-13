@@ -21,6 +21,7 @@ on:
           - site.yml
           - node_exporter.yml
           - elasticsearch_install.yml
+          - logstash.yml
 
 jobs:
   run-playbook:
