@@ -52,3 +52,10 @@
     mode: "0644"
   loop: "{{ elasticsearch_nodes }}"
   notify: restart elasticsearch nodes
+
+- name: set vm.max_map_count
+  sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    reload: yes
