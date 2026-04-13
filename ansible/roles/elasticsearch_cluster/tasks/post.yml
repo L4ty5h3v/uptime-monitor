@@ -59,12 +59,12 @@
 
 - name: create index template for logs
   uri:
-    url: "http://127.0.0.1:9200/_index_template/logs-template"
+    url: "http://127.0.0.1:9200/_index_template/uptime-logs-template"
     method: PUT
     body_format: json
     body:
       index_patterns:
-        - "logs-*"
+        - "uptime-logs-*"
       template:
         settings:
           number_of_shards: 1

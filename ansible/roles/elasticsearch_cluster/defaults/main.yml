@@ -9,6 +9,9 @@ elasticsearch_cluster_name: "uptime-cluster"
 elasticsearch_network_host: "127.0.0.1"
 elasticsearch_java_heap: "512m"
 
+
+elasticsearch_bootstrap_cluster: false
+
 elasticsearch_nodes:
   - name: "es-node-1"
     http_port: 9200
