@@ -13,10 +13,12 @@ discovery.seed_hosts:
   - "{{ host }}"
 {% endfor %}
 
+{% if elasticsearch_bootstrap_cluster %}
 cluster.initial_master_nodes:
 {% for node in elasticsearch_initial_master_nodes %}
   - "{{ node }}"
 {% endfor %}
+{% endif %}
 
 node.roles: [ master, data, ingest ]
 
