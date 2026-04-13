@@ -1,9 +1,7 @@
 elasticsearch_version: "8.19.14"
 elasticsearch_arch: "linux-aarch64"
 elasticsearch_download_url: "https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-{{ elasticsearch_version }}-{{ elasticsearch_arch }}.tar.gz"
-elasticsearch_archive_name: "elasticsearch-{{ elasticsearch_version }}-{{ elasticsearch_arch }}"
 elasticsearch_install_dir: "/opt/elasticsearch"
-elasticsearch_home: "{{ elasticsearch_install_dir }}/{{ elasticsearch_archive_name }}"
 elasticsearch_user: "elasticsearch"
 elasticsearch_group: "elasticsearch"
 

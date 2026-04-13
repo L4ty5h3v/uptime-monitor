@@ -8,13 +8,13 @@ Type=simple
 User={{ elasticsearch_user }}
 Group={{ elasticsearch_group }}
 
-Environment=ES_HOME={{ elasticsearch_home }}
+Environment=ES_HOME={{ elasticsearch_home_discovered }}
 Environment=ES_PATH_CONF=/etc/elasticsearch/%i
 Environment=ES_TMPDIR=/var/tmp/elasticsearch
 
-WorkingDirectory={{ elasticsearch_home }}
+WorkingDirectory={{ elasticsearch_home_discovered }}
 
-ExecStart={{ elasticsearch_home }}/bin/elasticsearch
+ExecStart={{ elasticsearch_home_discovered }}/bin/elasticsearch
 
 LimitNOFILE=65535
 LimitNPROC=4096

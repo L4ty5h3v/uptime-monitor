@@ -9,15 +9,15 @@
   file:
     path: /etc/elasticsearch
     state: directory
-    owner: root
-    group: root
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
     mode: "0755"
 
 - name: ensure per-node config directories exist
   file:
     path: "{{ item.config_path }}"
     state: directory
-    owner: root
+    owner: "{{ elasticsearch_user }}"
     group: "{{ elasticsearch_group }}"
     mode: "0750"
   loop: "{{ elasticsearch_nodes }}"
@@ -44,21 +44,29 @@
   template:
     src: elasticsearch.yml.j2
     dest: "{{ item.config_path }}/elasticsearch.yml"
-    owner: root
+    owner: "{{ elasticsearch_user }}"
     group: "{{ elasticsearch_group }}"
     mode: "0640"
   loop: "{{ elasticsearch_nodes }}"
-  notify: restart elasticsearch nodes
 
 - name: deploy jvm.options for each node
   template:
     src: jvm.options.j2
     dest: "{{ item.config_path }}/jvm.options"
-    owner: root
+    owner: "{{ elasticsearch_user }}"
     group: "{{ elasticsearch_group }}"
     mode: "0640"
   loop: "{{ elasticsearch_nodes }}"
-  notify: restart elasticsearch nodes
+
+- name: deploy log4j2 properties for each node
+  copy:
+    src: "{{ elasticsearch_home_discovered }}/config/log4j2.properties"
+    dest: "{{ item.config_path }}/log4j2.properties"
+    remote_src: true
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
+    mode: "0640"
+  loop: "{{ elasticsearch_nodes }}"
 
 - name: ensure tmp dir for elasticsearch exists
   file:
