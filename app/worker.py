@@ -93,7 +93,14 @@ async def run_once(db: Session, r):
         except Exception:
             UPTIME_WORKER_REDIS_ERRORS_TOTAL.inc()
 
-    await asyncio.gather(*[check_target(t) for t in targets])
+    async def delayed_check_target(t: Target, delay: float):
+        await asyncio.sleep(delay)
+        await check_target(t)
+
+    await asyncio.gather(*[
+        delayed_check_target(t, i * 0.3)
+        for i, t in enumerate(targets)
+    ])
 
 async def loop():
     r = get_redis_master()
