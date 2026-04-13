@@ -16,8 +16,28 @@ input {
 
 filter {
   if [type] == "syslog" {
+    mutate {
+      add_field => {
+        "log_source" => "syslog"
+      }
+    }
+
     grok {
       match => { "message" => "%{SYSLOGTIMESTAMP:timestamp} %{HOSTNAME:host} %{DATA:program}: %{GREEDYDATA:message}" }
+    }
+
+    if [program] {
+      mutate {
+        add_field => {
+          "service_name" => "%{program}"
+        }
+      }
+    }
+  } else {
+    mutate {
+      add_field => {
+        "ingest_path" => "filebeat"
+      }
     }
   }
 }
@@ -25,6 +45,6 @@ filter {
 output {
   elasticsearch {
     hosts => ["http://127.0.0.1:9200"]
-    index => "uptime-logs-%{+YYYY.MM.dd}"
+    index => "uptime-logs-%{[log_source]}-%{+YYYY.MM.dd}"
   }
 }
