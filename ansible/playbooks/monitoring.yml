@@ -7,3 +7,6 @@
     - node_exporter
     - grafana
     - postgres_exporter
+    - elasticsearch_cluster
+    - logstash
+    - filebeat
