@@ -1,0 +1,30 @@
+cluster.name: {{ elasticsearch_cluster_name }}
+node.name: {{ item.name }}
+
+path.data: {{ item.data_path }}
+path.logs: {{ item.log_path }}
+
+network.host: {{ elasticsearch_network_host }}
+http.port: {{ item.http_port }}
+transport.port: {{ item.transport_port }}
+
+discovery.seed_hosts:
+{% for host in elasticsearch_seed_hosts %}
+  - "{{ host }}"
+{% endfor %}
+
+cluster.initial_master_nodes:
+{% for node in elasticsearch_initial_master_nodes %}
+  - "{{ node }}"
+{% endfor %}
+
+node.roles: [ master, data, ingest ]
+
+xpack.security.enabled: false
+xpack.security.enrollment.enabled: false
+
+action.destructive_requires_name: true
+
+{% for key, value in elasticsearch_extra_settings.items() %}
+{{ key }}: {{ value }}
+{% endfor %}

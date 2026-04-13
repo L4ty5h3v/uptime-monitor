@@ -1,0 +1,54 @@
+- name: wait for elasticsearch api on primary node port
+  uri:
+    url: "http://127.0.0.1:9200"
+    method: GET
+    status_code: 200
+  register: elasticsearch_api
+  retries: 30
+  delay: 5
+  until: elasticsearch_api.status == 200
+
+- name: wait for cluster health to become at least yellow
+  uri:
+    url: "http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=60s"
+    method: GET
+    status_code: 200
+  register: elasticsearch_cluster_health
+  retries: 10
+  delay: 6
+  until: elasticsearch_cluster_health.status == 200
+
+- name: create ilm policy for log indices
+  uri:
+    url: "http://127.0.0.1:9200/_ilm/policy/logs-policy"
+    method: PUT
+    body_format: json
+    body:
+      policy:
+        phases:
+          hot:
+            actions: {}
+          delete:
+            min_age: "7d"
+            actions:
+              delete: {}
+    status_code: [200, 201]
+    headers:
+      Content-Type: "application/json"
+
+- name: create index template for logs
+  uri:
+    url: "http://127.0.0.1:9200/_index_template/logs-template"
+    method: PUT
+    body_format: json
+    body:
+      index_patterns:
+        - "logs-*"
+      template:
+        settings:
+          number_of_shards: 1
+          number_of_replicas: 1
+          index.lifecycle.name: "logs-policy"
+    status_code: [200, 201]
+    headers:
+      Content-Type: "application/json"
