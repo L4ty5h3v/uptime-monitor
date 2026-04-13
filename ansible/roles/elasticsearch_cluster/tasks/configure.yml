@@ -1,3 +1,10 @@
+- name: set vm.max_map_count
+  sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    reload: yes
+
 - name: ensure elasticsearch config root exists
   file:
     path: /etc/elasticsearch
@@ -11,8 +18,8 @@
     path: "{{ item.config_path }}"
     state: directory
     owner: root
-    group: root
-    mode: "0755"
+    group: "{{ elasticsearch_group }}"
+    mode: "0750"
   loop: "{{ elasticsearch_nodes }}"
 
 - name: ensure per-node data directories exist
@@ -38,8 +45,8 @@
     src: elasticsearch.yml.j2
     dest: "{{ item.config_path }}/elasticsearch.yml"
     owner: root
-    group: root
-    mode: "0644"
+    group: "{{ elasticsearch_group }}"
+    mode: "0640"
   loop: "{{ elasticsearch_nodes }}"
   notify: restart elasticsearch nodes
 
@@ -48,14 +55,15 @@
     src: jvm.options.j2
     dest: "{{ item.config_path }}/jvm.options"
     owner: root
-    group: root
-    mode: "0644"
+    group: "{{ elasticsearch_group }}"
+    mode: "0640"
   loop: "{{ elasticsearch_nodes }}"
   notify: restart elasticsearch nodes
 
-- name: set vm.max_map_count
-  sysctl:
-    name: vm.max_map_count
-    value: "262144"
-    state: present
-    reload: yes
+- name: ensure tmp dir for elasticsearch exists
+  file:
+    path: /var/tmp/elasticsearch
+    state: directory
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
+    mode: "0755"
