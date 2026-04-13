@@ -2,4 +2,4 @@
   become: yes
 
   roles:
-    - app
+    - elasticsearch_cluster
