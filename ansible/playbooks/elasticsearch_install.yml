@@ -3,3 +3,4 @@
 
   roles:
     - elasticsearch_cluster
+    - filebeat
