@@ -1,0 +1,38 @@
+- name: install required packages
+  apt:
+    name:
+      - apt-transport-https
+      - openjdk-17-jdk
+      - curl
+      - gnupg
+    state: present
+    update_cache: yes
+
+- name: ensure elasticsearch keyring directory exists
+  file:
+    path: /usr/share/keyrings
+    state: directory
+    mode: "0755"
+
+- name: add elasticsearch apt key
+  shell: |
+    set -o pipefail
+    curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch | gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/elasticsearch-keyring.gpg
+    executable: /bin/bash
+
+- name: add elasticsearch apt repository
+  copy:
+    dest: /etc/apt/sources.list.d/elastic-8.x.list
+    content: |
+      deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: install elasticsearch package
+  apt:
+    name: elasticsearch
+    state: present
+    update_cache: yes

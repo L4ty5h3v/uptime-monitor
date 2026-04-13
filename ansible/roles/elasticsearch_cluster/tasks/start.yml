@@ -1,0 +1,6 @@
+- name: enable and start elasticsearch nodes
+  systemd:
+    name: "elasticsearch@{{ item.name }}"
+    enabled: yes
+    state: started
+  loop: "{{ elasticsearch_nodes }}"
