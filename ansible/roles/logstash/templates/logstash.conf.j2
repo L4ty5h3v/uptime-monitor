@@ -1,0 +1,30 @@
+input {
+  beats {
+    port => 5044
+  }
+
+  tcp {
+    port => 5000
+    type => syslog
+  }
+
+  udp {
+    port => 5000
+    type => syslog
+  }
+}
+
+filter {
+  if [type] == "syslog" {
+    grok {
+      match => { "message" => "%{SYSLOGTIMESTAMP:timestamp} %{HOSTNAME:host} %{DATA:program}: %{GREEDYDATA:message}" }
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://127.0.0.1:9200"]
+    index => "uptime-logs-%{+YYYY.MM.dd}"
+  }
+}
