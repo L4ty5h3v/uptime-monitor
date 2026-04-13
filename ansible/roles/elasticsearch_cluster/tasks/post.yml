@@ -1,3 +1,10 @@
+- name: wait for elasticsearch port on node 1
+  wait_for:
+    host: 127.0.0.1
+    port: 9200
+    delay: 5
+    timeout: 300
+
 - name: wait for elasticsearch api on node 1
   uri:
     url: "http://127.0.0.1:9200"

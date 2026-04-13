@@ -32,21 +32,44 @@
 - name: download elasticsearch tar archive
   get_url:
     url: "{{ elasticsearch_download_url }}"
-    dest: "/tmp/{{ elasticsearch_archive_name }}.tar.gz"
+    dest: "/tmp/elasticsearch-{{ elasticsearch_version }}.tar.gz"
     mode: "0644"
     force: false
 
 - name: unpack elasticsearch archive
   unarchive:
-    src: "/tmp/{{ elasticsearch_archive_name }}.tar.gz"
+    src: "/tmp/elasticsearch-{{ elasticsearch_version }}.tar.gz"
     dest: "{{ elasticsearch_install_dir }}"
     remote_src: true
-    creates: "{{ elasticsearch_home }}/bin/elasticsearch"
 
-- name: ensure elasticsearch home ownership is correct
-  file:
-    path: "{{ elasticsearch_home }}"
-    state: directory
+- name: find elasticsearch binary
+  find:
+    paths: "{{ elasticsearch_install_dir }}"
+    patterns: elasticsearch
+    file_type: file
     recurse: yes
-    owner: root
-    group: root
+  register: elasticsearch_binaries
+
+- name: fail if elasticsearch binary was not found
+  fail:
+    msg: "Elasticsearch binary not found under {{ elasticsearch_install_dir }}"
+  when: elasticsearch_binaries.matched == 0
+
+- name: set elasticsearch home from discovered binary
+  set_fact:
+    elasticsearch_home_discovered: "{{ elasticsearch_binaries.files | map(attribute='path') | select('match', '.*/bin/elasticsearch$') | list | first | dirname | dirname }}"
+
+- name: fail if discovered elasticsearch home is empty
+  fail:
+    msg: "Failed to determine elasticsearch home directory"
+  when: elasticsearch_home_discovered is not defined or elasticsearch_home_discovered | length == 0
+
+- name: ensure elasticsearch launcher is executable
+  file:
+    path: "{{ elasticsearch_home_discovered }}/bin/elasticsearch"
+    mode: "0755"
+
+- name: ensure bundled java is executable
+  file:
+    path: "{{ elasticsearch_home_discovered }}/jdk/bin/java"
+    mode: "0755"
