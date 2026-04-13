@@ -1,43 +1,33 @@
 [Unit]
 Description=Elasticsearch node %i
-Documentation=https://www.elastic.co
-Wants=network-online.target
-After=network-online.target
+After=network.target
 
 [Service]
-Type=notify
-NotifyAccess=all
+Type=simple
 
-User=elasticsearch
-Group=elasticsearch
+User={{ elasticsearch_user }}
+Group={{ elasticsearch_group }}
 
-Environment=ES_HOME=/usr/share/elasticsearch
+Environment=ES_HOME={{ elasticsearch_home }}
 Environment=ES_PATH_CONF=/etc/elasticsearch/%i
-Environment=PID_DIR=/run/elasticsearch
-EnvironmentFile=-/etc/default/elasticsearch
+Environment=ES_TMPDIR=/var/tmp/elasticsearch
 
-WorkingDirectory=/usr/share/elasticsearch
+WorkingDirectory={{ elasticsearch_home }}
 
-ExecStart=/usr/share/elasticsearch/bin/systemd-entrypoint -p ${PID_DIR}/elasticsearch-%i.pid --quiet
-
-RuntimeDirectory=elasticsearch
-RuntimeDirectoryMode=0755
+ExecStart={{ elasticsearch_home }}/bin/elasticsearch
 
 LimitNOFILE=65535
 LimitNPROC=4096
 LimitAS=infinity
 LimitFSIZE=infinity
+TimeoutStartSec=300
 TimeoutStopSec=0
-KillSignal=SIGTERM
-KillMode=process
-SendSIGKILL=no
-SuccessExitStatus=143
-
-StandardOutput=journal
-StandardError=inherit
 
 Restart=on-failure
 RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

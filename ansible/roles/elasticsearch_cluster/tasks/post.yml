@@ -1,22 +1,36 @@
-- name: wait for elasticsearch api on primary node port
+- name: wait for elasticsearch api on node 1
   uri:
     url: "http://127.0.0.1:9200"
     method: GET
     status_code: 200
   register: elasticsearch_api
-  retries: 30
+  retries: 60
   delay: 5
   until: elasticsearch_api.status == 200
 
 - name: wait for cluster health to become at least yellow
   uri:
-    url: "http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=60s"
+    url: "http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=120s"
     method: GET
     status_code: 200
   register: elasticsearch_cluster_health
-  retries: 10
-  delay: 6
+  retries: 30
+  delay: 5
   until: elasticsearch_cluster_health.status == 200
+
+- name: get cluster nodes
+  uri:
+    url: "http://127.0.0.1:9200/_cat/nodes?format=json"
+    method: GET
+    status_code: 200
+  register: elasticsearch_nodes_response
+
+- name: assert cluster has 3 nodes
+  assert:
+    that:
+      - elasticsearch_nodes_response.json | length == 3
+    fail_msg: "Elasticsearch cluster does not have 3 nodes"
+    success_msg: "Elasticsearch cluster has 3 nodes"
 
 - name: create ilm policy for log indices
   uri:
