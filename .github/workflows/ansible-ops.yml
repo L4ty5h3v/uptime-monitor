@@ -19,6 +19,9 @@ on:
           - postgres.yml
           - monitoring.yml
           - site.yml
+          - node_exporter.yml
+          - elasticsearch_install.yml
+          - logstash.yml
 
 jobs:
   run-playbook:
@@ -41,4 +44,7 @@ jobs:
       - name: Run selected Ansible playbook
         run: |
           cd ansible
-          ansible-playbook playbooks/${{ github.event.inputs.playbook }}
+          ansible-playbook playbooks/${{ github.event.inputs.playbook }} \
+            -e "repo_version=${GITHUB_REF_NAME}"
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}

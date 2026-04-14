@@ -2,4 +2,11 @@
   become: yes
 
   roles:
-    - redis_exporter
+    - app
+    - prometheus
+    - node_exporter
+    - grafana
+    - postgres_exporter
+    - elasticsearch_cluster
+    - logstash
+    - filebeat

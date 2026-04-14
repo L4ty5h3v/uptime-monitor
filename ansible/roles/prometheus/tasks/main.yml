@@ -1,0 +1,112 @@
+- name: debug prometheus download url
+  debug:
+    msg: "{{ prometheus_download_url }}"
+
+- name: ensure prometheus group exists
+  group:
+    name: "{{ prometheus_group }}"
+    system: yes
+
+- name: ensure prometheus user exists
+  user:
+    name: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+
+- name: ensure prometheus install directory exists
+  file:
+    path: "{{ prometheus_install_dir }}"
+    state: directory
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: "0755"
+
+- name: ensure prometheus config directory exists
+  file:
+    path: "{{ prometheus_config_dir }}"
+    state: directory
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: "0755"
+
+- name: ensure prometheus data directory exists
+  file:
+    path: "{{ prometheus_data_dir }}"
+    state: directory
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: "0755"
+
+- name: download prometheus archive
+  get_url:
+    url: "{{ prometheus_download_url }}"
+    dest: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+    force: false
+    mode: "0644"
+
+- name: extract prometheus archive
+  unarchive:
+    src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+    dest: /tmp
+    remote_src: yes
+    creates: "/tmp/prometheus-{{ prometheus_version }}.linux-arm64/prometheus"
+
+- name: copy prometheus binary
+  copy:
+    src: "/tmp/prometheus-{{ prometheus_version }}.linux-arm64/prometheus"
+    dest: "{{ prometheus_install_dir }}/prometheus"
+    remote_src: yes
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: "0755"
+  notify: restart prometheus
+
+- name: copy promtool binary
+  copy:
+    src: "/tmp/prometheus-{{ prometheus_version }}.linux-arm64/promtool"
+    dest: "{{ prometheus_install_dir }}/promtool"
+    remote_src: yes
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: "0755"
+
+- name: copy prometheus config from deployed project
+  copy:
+    src: "{{ app_dir }}/infra/prometheus/prometheus.yml"
+    dest: "{{ prometheus_config_dir }}/prometheus.yml"
+    remote_src: true
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: "0644"
+  notify: restart prometheus
+
+- name: copy prometheus alert rules from deployed project
+  copy:
+    src: "{{ app_dir }}/infra/prometheus/alerts.yml"
+    dest: "{{ prometheus_config_dir }}/alerts.yml"
+    remote_src: true
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: "0644"
+  notify: restart prometheus
+  when: prometheus_alerts_enabled | default(true)
+
+- name: install prometheus systemd unit
+  template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload systemd
+
+- name: flush handlers before starting prometheus
+  meta: flush_handlers
+
+- name: enable and start prometheus
+  systemd:
+    name: prometheus
+    enabled: yes
+    state: started

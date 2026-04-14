@@ -1,5 +1,52 @@
 from prometheus_client import Counter, Gauge, Histogram
 
+# -------- API metrics --------
+
+HTTP_REQUESTS_TOTAL = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "path", "status_code"],
+)
+
+HTTP_REQUEST_DURATION_SECONDS = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ["method", "path"],
+)
+
+HTTP_REQUESTS_IN_PROGRESS = Gauge(
+    "http_requests_in_progress",
+    "Number of HTTP requests in progress",
+    ["method", "path"],
+)
+
+UPTIME_CACHE_HITS_TOTAL = Counter(
+    "uptime_cache_hits_total",
+    "Total Redis cache hits for status endpoints",
+)
+
+UPTIME_CACHE_MISSES_TOTAL = Counter(
+    "uptime_cache_misses_total",
+    "Total Redis cache misses for status endpoints",
+)
+
+UPTIME_STATUS_FALLBACK_DB_TOTAL = Counter(
+    "uptime_status_fallback_db_total",
+    "Total fallback reads from Postgres when Redis cache missed",
+)
+
+UPTIME_TARGETS_TOTAL = Gauge(
+    "uptime_targets_total",
+    "Total number of monitoring targets",
+)
+
+UPTIME_TARGETS_ENABLED = Gauge(
+    "uptime_targets_enabled",
+    "Number of enabled monitoring targets",
+)
+
+# -------- Worker metrics --------
+
 UPTIME_CHECKS_TOTAL = Counter(
     "uptime_checks_total",
     "Total number of target checks",
@@ -14,11 +61,6 @@ UPTIME_CHECK_DURATION_SECONDS = Histogram(
 UPTIME_WORKER_CYCLE_DURATION_SECONDS = Histogram(
     "uptime_worker_cycle_duration_seconds",
     "Worker cycle duration in seconds",
-)
-
-UPTIME_TARGETS_ENABLED = Gauge(
-    "uptime_targets_enabled",
-    "Number of enabled targets",
 )
 
 UPTIME_WORKER_TARGETS_PER_CYCLE = Gauge(

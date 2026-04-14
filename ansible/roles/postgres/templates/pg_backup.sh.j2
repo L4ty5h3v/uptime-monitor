@@ -6,19 +6,63 @@ DB_NAME="{{ postgres_db_name }}"
 PGHOST="{{ postgres_db_host }}"
 PGPORT="{{ postgres_db_port }}"
 PGUSER="{{ postgres_db_user }}"
+METRICS_DIR="{{ node_exporter_textfile_dir }}"
+METRICS_FILE="${METRICS_DIR}/postgres_backup.prom"
+TMP_METRICS_FILE="${METRICS_FILE}.$$"
 
 TS="$(date +%F_%H-%M-%S)"
+START_TS="$(date +%s)"
 FILE="${BACKUP_DIR}/${DB_NAME}_${TS}.dump"
 ARCHIVE="${FILE}.gz"
 
 mkdir -p "${BACKUP_DIR}"
+mkdir -p "${METRICS_DIR}"
 
 export PGHOST PGPORT PGUSER
 
+EXIT_CODE=0
+
+cleanup_metrics() {
+  DURATION="$(( $(date +%s) - START_TS ))"
+  SIZE_BYTES=0
+
+  if [[ -f "${ARCHIVE}" ]]; then
+    SIZE_BYTES="$(stat -c%s "${ARCHIVE}")"
+  fi
+
+  {
+    echo "# HELP postgres_backup_last_success_timestamp Unix timestamp of last successful PostgreSQL backup"
+    echo "# TYPE postgres_backup_last_success_timestamp gauge"
+    if [[ "${EXIT_CODE}" -eq 0 ]]; then
+      echo "postgres_backup_last_success_timestamp $(date +%s)"
+    else
+      if [[ -f "${METRICS_FILE}" ]]; then
+        grep '^postgres_backup_last_success_timestamp ' "${METRICS_FILE}" || echo "postgres_backup_last_success_timestamp 0"
+      else
+        echo "postgres_backup_last_success_timestamp 0"
+      fi
+    fi
+
+    echo "# HELP postgres_backup_last_exit_code Exit code of the last PostgreSQL backup run"
+    echo "# TYPE postgres_backup_last_exit_code gauge"
+    echo "postgres_backup_last_exit_code ${EXIT_CODE}"
+
+    echo "# HELP postgres_backup_duration_seconds Duration of the last PostgreSQL backup run in seconds"
+    echo "# TYPE postgres_backup_duration_seconds gauge"
+    echo "postgres_backup_duration_seconds ${DURATION}"
+
+    echo "# HELP postgres_backup_size_bytes Size of the last PostgreSQL backup archive in bytes"
+    echo "# TYPE postgres_backup_size_bytes gauge"
+    echo "postgres_backup_size_bytes ${SIZE_BYTES}"
+  } > "${TMP_METRICS_FILE}"
+
+  mv "${TMP_METRICS_FILE}" "${METRICS_FILE}"
+}
+
+trap 'EXIT_CODE=$?; cleanup_metrics; exit $EXIT_CODE' EXIT
+
 pg_dump -Fc -d "${DB_NAME}" -f "${FILE}"
-
 pg_restore -l "${FILE}" > /dev/null
-
 gzip -f "${FILE}"
 
 find "${BACKUP_DIR}" -type f -name "*.dump.gz" -mtime +{{ postgres_backup_retention_days }} -delete

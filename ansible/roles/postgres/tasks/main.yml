@@ -18,14 +18,24 @@
     group: postgres
     mode: "0755"
 
-- name: ensure postgres log directory exists
+- name: ensure postgres backup log directory exists
   file:
-    path: "{{ postgres_log_dir }}"
+    path: "{{ postgres_backup_log_dir }}"
     state: directory
     owner: postgres
     group: postgres
     mode: "0755"
 
+- name: ensure postgres backup log files exist
+  file:
+    path: "{{ item }}"
+    state: touch
+    owner: postgres
+    group: postgres
+    mode: "0644"
+  loop:
+    - "{{ postgres_backup_log_dir }}/backup.log"
+    - "{{ postgres_backup_log_dir }}/backup-upload.log"
 
 - name: manage postgres database objects
   become: yes
@@ -82,7 +92,7 @@
     user: postgres
     minute: "{{ postgres_backup_cron_minute }}"
     hour: "{{ postgres_backup_cron_hour }}"
-    job: "{{ postgres_backup_script_path }} >> {{ postgres_log_dir }}/backup.log 2>&1"
+    job: "{{ postgres_backup_script_path }} >> {{ postgres_backup_log_dir }}/backup.log 2>&1"
 
 - name: configure postgres backup upload cron job
   cron:
@@ -90,5 +100,5 @@
     user: postgres
     minute: "{{ postgres_backup_upload_cron_minute }}"
     hour: "{{ postgres_backup_upload_cron_hour }}"
-    job: "{{ postgres_backup_upload_script_path }} >> {{ postgres_log_dir }}/backup-upload.log 2>&1"
+    job: "{{ postgres_backup_upload_script_path }} >> {{ postgres_backup_log_dir }}/backup-upload.log 2>&1"
   when: postgres_enable_backup_upload

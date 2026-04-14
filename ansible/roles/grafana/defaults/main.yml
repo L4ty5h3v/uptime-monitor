@@ -1,0 +1,11 @@
+grafana_package_name: grafana
+grafana_service_name: grafana-server
+
+grafana_admin_user: admin
+grafana_admin_password: admin
+
+grafana_datasource_dir: /etc/grafana/provisioning/datasources
+grafana_dashboards_dir: /etc/grafana/provisioning/dashboards
+
+grafana_prometheus_name: Prometheus
+grafana_prometheus_url: http://127.0.0.1:9090

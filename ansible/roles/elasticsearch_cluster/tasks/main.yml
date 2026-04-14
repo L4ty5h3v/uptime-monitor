@@ -1,0 +1,17 @@
+- name: include install tasks
+  import_tasks: install.yml
+
+- name: include configure tasks
+  import_tasks: configure.yml
+
+- name: include systemd tasks
+  import_tasks: systemd.yml
+
+- name: flush handlers before starting nodes
+  meta: flush_handlers
+
+- name: include start tasks
+  import_tasks: start.yml
+
+- name: include post-deployment tasks
+  import_tasks: post.yml

@@ -1,0 +1,33 @@
+[Unit]
+Description=Elasticsearch node %i
+After=network.target
+
+[Service]
+Type=simple
+
+User={{ elasticsearch_user }}
+Group={{ elasticsearch_group }}
+
+Environment=ES_HOME={{ elasticsearch_home_discovered }}
+Environment=ES_PATH_CONF=/etc/elasticsearch/%i
+Environment=ES_TMPDIR=/var/tmp/elasticsearch
+
+WorkingDirectory={{ elasticsearch_home_discovered }}
+
+ExecStart={{ elasticsearch_home_discovered }}/bin/elasticsearch
+
+LimitNOFILE=65535
+LimitNPROC=4096
+LimitAS=infinity
+LimitFSIZE=infinity
+TimeoutStartSec=300
+TimeoutStopSec=0
+
+Restart=on-failure
+RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

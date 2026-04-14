@@ -1,0 +1,55 @@
+filebeat.inputs:
+  - type: filestream
+    id: uptime-api-logs
+    enabled: true
+    paths:
+      - /var/log/uptime/api.log
+      - /var/log/uptime/api.err.log
+    fields_under_root: true
+    fields:
+      log_source: app
+      service_name: uptime-api
+
+  - type: filestream
+    id: uptime-worker-logs
+    enabled: true
+    paths:
+      - /var/log/uptime/worker.log
+      - /var/log/uptime/worker.err.log
+    fields_under_root: true
+    fields:
+      log_source: app
+      service_name: uptime-worker
+
+  - type: filestream
+    id: postgres-backup-logs
+    enabled: true
+    paths:
+      - /var/log/postgres-backup/*.log
+    fields_under_root: true
+    fields:
+      log_source: backup
+      service_name: postgres-backup
+
+  - type: filestream
+    id: redis-logs
+    enabled: true
+    paths:
+      - /var/log/redis/redis-*.log
+    fields_under_root: true
+    fields:
+      log_source: redis
+      service_name: redis
+
+  - type: filestream
+    id: redis-sentinel-logs
+    enabled: true
+    paths:
+      - /var/log/redis/sentinel-*.log
+    fields_under_root: true
+    fields:
+      log_source: sentinel
+      service_name: redis-sentinel
+
+output.logstash:
+  hosts: ["127.0.0.1:5044"]

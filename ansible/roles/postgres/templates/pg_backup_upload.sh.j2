@@ -3,6 +3,44 @@ set -euo pipefail
 
 BACKUP_DIR="{{ postgres_backup_dir }}"
 REMOTE="{{ postgres_backup_remote }}"
+METRICS_DIR="{{ node_exporter_textfile_dir }}"
+METRICS_FILE="${METRICS_DIR}/postgres_backup_upload.prom"
+TMP_METRICS_FILE="${METRICS_FILE}.$$"
+
+START_TS="$(date +%s)"
+mkdir -p "${METRICS_DIR}"
+
+EXIT_CODE=0
+
+cleanup_metrics() {
+  DURATION="$(( $(date +%s) - START_TS ))"
+
+  {
+    echo "# HELP postgres_backup_upload_last_success_timestamp Unix timestamp of last successful PostgreSQL backup upload"
+    echo "# TYPE postgres_backup_upload_last_success_timestamp gauge"
+    if [[ "${EXIT_CODE}" -eq 0 ]]; then
+      echo "postgres_backup_upload_last_success_timestamp $(date +%s)"
+    else
+      if [[ -f "${METRICS_FILE}" ]]; then
+        grep '^postgres_backup_upload_last_success_timestamp ' "${METRICS_FILE}" || echo "postgres_backup_upload_last_success_timestamp 0"
+      else
+        echo "postgres_backup_upload_last_success_timestamp 0"
+      fi
+    fi
+
+    echo "# HELP postgres_backup_upload_last_exit_code Exit code of the last PostgreSQL backup upload run"
+    echo "# TYPE postgres_backup_upload_last_exit_code gauge"
+    echo "postgres_backup_upload_last_exit_code ${EXIT_CODE}"
+
+    echo "# HELP postgres_backup_upload_duration_seconds Duration of the last PostgreSQL backup upload run in seconds"
+    echo "# TYPE postgres_backup_upload_duration_seconds gauge"
+    echo "postgres_backup_upload_duration_seconds ${DURATION}"
+  } > "${TMP_METRICS_FILE}"
+
+  mv "${TMP_METRICS_FILE}" "${METRICS_FILE}"
+}
+
+trap 'EXIT_CODE=$?; cleanup_metrics; exit $EXIT_CODE' EXIT
 
 LATEST="$(ls -1t "${BACKUP_DIR}"/*.dump.gz | head -n 1)"
 
