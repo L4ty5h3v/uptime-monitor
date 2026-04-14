@@ -1,120 +1,187 @@
 # Uptime Monitor
 
-Uptime Monitor — это небольшое веб-приложение на FastAPI для мониторинга доступности сайтов и HTTP-эндпоинтов.
+Uptime Monitor — сервис для мониторинга доступности сайтов и HTTP-эндпоинтов.  
+Проект начинался как приложение на `FastAPI` с отдельным `worker`, а в рамках второй части расширен до полноценного observability-стенда: метрики, логи, дашборды, алерты и расчёт бюджета ошибок.
 
-Приложение позволяет:
+## Что умеет проект
 
-- добавлять цели для мониторинга
-- хранить список целей в Postgres
-- периодически проверять их отдельным worker-процессом
-- сохранять историю проверок в Postgres
-- кэшировать последний статус в Redis через Redis Sentinel
-- быстро получать текущий статус и историю проверок через HTTP API
+- хранит цели мониторинга в `PostgreSQL`
+- периодически проверяет их фоновым `worker`
+- сохраняет историю проверок
+- кэширует актуальный статус в `Redis` через `Redis Sentinel`
+- отдаёт HTTP API для управления целями и просмотра статусов
+- экспортирует метрики в `Prometheus`
+- централизованно собирает логи в `Elasticsearch`
+- визуализирует метрики и логи в `Grafana`
+- считает `SLA / SLO / Error Budget`
 
-## Стек
-
-- Python
-- FastAPI
-- SQLAlchemy
-- PostgreSQL
-- Redis + Redis Sentinel
-- Alembic
-
----
-
-## Как это работает
-
-Проект состоит из двух основных частей:
-
-### API
-API отвечает за управление целями мониторинга и просмотр результатов проверок.
-
-Основные функции API:
-
-- создать цель
-- получить список целей
-- обновить цель
-- удалить цель
-- получить текущий статус
-- получить историю проверок
-
-### Worker
-Worker работает в цикле и:
-
-- берёт все `enabled=true` цели из базы
-- отправляет HTTP-запросы к их URL
-- сохраняет результат проверки в таблицу `checks`
-- записывает последний статус в Redis
-- хранит счётчик неудачных проверок в Redis
-
----
-
-## Архитектура хранения данных
-
-### PostgreSQL
-Postgres используется как основное постоянное хранилище:
-
-- таблица `targets` — список целей
-- таблица `checks` — история проверок
-
-### Redis
-Redis используется как кэш:
-
-- `target:last:{id}` — последний статус цели
-- `target:failcount:{id}` — счётчик подряд идущих неудачных проверок
-
-TTL задаётся через настройки приложения.
-
----
-
-## Структура проекта
+## Архитектура
 
 ```text
-app/
-  main.py           # FastAPI API
-  worker.py         # background worker
-  checker.py        # HTTP-проверка цели
-  db.py             # подключение к БД
-  models.py         # SQLAlchemy модели
-  schemas.py        # Pydantic схемы
-  redis_cache.py    # работа с Redis/Sentinel
-  config.py         # настройки из .env
+                           +-------------------+
+                           |      Grafana      |
+                           | метрики, логи,    |
+                           | SLO, алерты       |
+                           +---------+---------+
+                                     |
+                  +------------------+------------------+
+                  |                                     |
+                  v                                     v
+          +-------+--------+                    +-------+--------+
+          |   Prometheus   |                    | Elasticsearch  |
+          |   метрики      |                    |    логи        |
+          +-------+--------+                    +-------+--------+
+                  |                                     ^
+                  |                                     |
+      +-----------+------------+                +-------+--------+
+      |           |            |                |    Logstash    |
+      v           v            v                +-------+--------+
+  API /metrics  Worker      Exporters                   ^
+                           node/postgres/redis          |
+                                                        |
+                                                +-------+--------+
+                                                | Filebeat       |
+                                                | + rsyslog      |
+                                                +-------+--------+
+                                                        |
+                         +------------------------------+------------------------------+
+                         |                                                             |
+                         v                                                             v
+                  app / backup / redis logs                                  syslog / service logs
+```
 
-migrations/         # Alembic миграции
-scripts/            # backup-скрипты Postgres
-infra/              # инфраструктурные конфиги
-requirements.txt
+## Основные компоненты
 
+### Приложение
 
-# Как пользоваться приложением
+- `app/main.py` — API на `FastAPI`
+- `app/worker.py` — фоновый процесс выполнения проверок
+- `app/checker.py` — HTTP-проверка целевых URL
+- `app/metrics.py` — метрики API и worker для `Prometheus`
+- `app/redis_cache.py` — работа с `Redis` и `Sentinel`
 
-## 1. Проверить, что API работает
+### Хранение данных
+
+- `PostgreSQL` — постоянное хранилище целей и истории проверок
+- `Redis + Redis Sentinel` — кэш последнего статуса и счётчиков ошибок
+- `Alembic` — миграции схемы БД
+
+### Инфраструктура
+
+- `Ansible` — деплой и эксплуатационные playbook'и
+- `systemd` — управление сервисами
+- `Prometheus` — сбор метрик
+- `Grafana` — дашборды и алерты
+- `Elasticsearch` — хранение и поиск логов
+- `Logstash` — маршрутизация и индексация логов
+- `Filebeat` — сбор файловых логов
+- `node_exporter`, `postgres_exporter`, `redis_exporter` — системные и инфраструктурные метрики
+
+## Наблюдаемость
+
+### Метрики
+
+Проект экспортирует и собирает:
+
+- HTTP-метрики API
+- метрики worker по успехам и ошибкам проверок
+- latency проверок
+- метрики `Redis`, `PostgreSQL` и хоста
+- метрики `PostgreSQL` backup через `node_exporter textfile collector`
+
+`Prometheus` опрашивает:
+
+- `127.0.0.1:8000/metrics` — API
+- `127.0.0.1:9101/metrics` — worker
+- `127.0.0.1:9100` — `node_exporter`
+- `127.0.0.1:9121` — `redis_exporter`
+- `127.0.0.1:9187` — `postgres_exporter`
+
+### Логи
+
+Собираются следующие логи:
+
+- `/var/log/uptime/*.log`
+- `/var/log/postgres-backup/*.log`
+- `/var/log/redis/redis-*.log`
+- `/var/log/redis/sentinel-*.log`
+- системные события через `syslog -> Logstash -> Elasticsearch`
+
+Логи индексируются в `Elasticsearch` по схеме:
+
+- `uptime-logs-app-YYYY.MM.DD`
+- `uptime-logs-backup-YYYY.MM.DD`
+- `uptime-logs-redis-YYYY.MM.DD`
+- `uptime-logs-sentinel-YYYY.MM.DD`
+- `uptime-logs-syslog-YYYY.MM.DD`
+
+Для индексов `uptime-logs-*` применяется `ILM policy`, которая удаляет старые индексы через `7` дней.
+
+### SLA / SLO / Error Budget
+
+В проекте используется простой контракт доступности:
+
+- `SLI` — доля успешных проверок
+- `SLO` — не менее `90%` успешных проверок за последние `24h`
+- `Error Budget` — не более `10%` неуспешных проверок за те же `24h`
+
+В `Grafana` для этого вынесен отдельный дашборд с панелями:
+
+- `Availability 24h`
+- `Failure Rate 24h`
+- `Budget Consumed`
+- `Error Budget Remaining`
+
+## Структура репозитория
+
+```text
+app/                 код приложения и worker
+ansible/             inventory, роли и playbook'и
+infra/               systemd, Redis, Prometheus и служебные конфиги
+migrations/          миграции Alembic
+scripts/             вспомогательные скрипты
+snapshots/           экспортированные артефакты и снимки
+requirements.txt     Python-зависимости
+README.md            описание проекта
+```
+
+## Важные playbook'и
+
+Из директории `ansible/`:
+
+- `playbooks/deploy_app.yml` — деплой приложения
+- `playbooks/migration.yml` — применение миграций
+- `playbooks/monitoring.yml` — `Prometheus`, `Grafana`, exporters
+- `playbooks/elasticsearch_install.yml` — `Elasticsearch` cluster и `Filebeat`
+- `playbooks/logstash.yml` — `Logstash`
+- `playbooks/site.yml` — базовая инфраструктура
+
+## Основные сервисы
+
+- `uptime-api`
+- `uptime-worker`
+- `uptime-migrate`
+- `redis@6379`
+- `redis@6380`
+- `redis-sentinel@26379`
+- `redis-sentinel@26380`
+- `redis-sentinel@26381`
+
+## Быстрые команды API
+
+### Проверка health
 
 ```bash
 curl http://127.0.0.1:8000/health
 ```
 
-Ожидаемый ответ:
+### Swagger UI
 
-```json
-{"ok": true}
-```
-
----
-
-## 2. Открыть Swagger UI
-
-FastAPI автоматически предоставляет интерфейс для тестирования API:
-
-```
+```text
 http://127.0.0.1:8000/docs
 ```
 
-Через него можно отправлять запросы и смотреть ответы без использования curl.
-
----
-
-## 3. Добавить цель для мониторинга
+### Создание цели мониторинга
 
 ```bash
 curl -X POST http://127.0.0.1:8000/targets \
@@ -128,146 +195,67 @@ curl -X POST http://127.0.0.1:8000/targets \
   }'
 ```
 
----
-
-## 4. Получить список целей
+### Получение списка целей
 
 ```bash
 curl http://127.0.0.1:8000/targets
 ```
 
----
-
-## 5. Получить текущий статус всех целей
+### Получение текущего статуса
 
 ```bash
 curl http://127.0.0.1:8000/status
-```
-
----
-
-## 6. Получить текущий статус одной цели
-
-```bash
 curl http://127.0.0.1:8000/status/1
 ```
 
-Пример ответа:
-
-```json
-{
-  "target_id": 1,
-  "ts": "2026-03-11T10:05:00Z",
-  "ok": true,
-  "status_code": 200,
-  "latency_ms": 120,
-  "error": null
-}
-```
-
----
-
-## 7. Получить историю проверок
+### Получение истории проверок
 
 ```bash
 curl http://127.0.0.1:8000/history/1
-```
-
-С ограничением количества записей:
-
-```bash
 curl "http://127.0.0.1:8000/history/1?limit=10"
 ```
 
----
-
-## 8. Обновить цель
-
-Например выключить мониторинг:
+### Обновление цели
 
 ```bash
 curl -X PATCH http://127.0.0.1:8000/targets/1 \
   -H "Content-Type: application/json" \
-  -d '{
-    "enabled": false
-  }'
+  -d '{"enabled": false}'
 ```
 
-Изменить URL:
-
-```bash
-curl -X PATCH http://127.0.0.1:8000/targets/1 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://google.com"
-  }'
-```
-
-Изменить интервал проверки и таймаут:
-
-```bash
-curl -X PATCH http://127.0.0.1:8000/targets/1 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "interval_sec": 60,
-    "timeout_ms": 5000
-  }'
-```
-
----
-
-## 9. Удалить цель
+### Удаление цели
 
 ```bash
 curl -X DELETE http://127.0.0.1:8000/targets/1
 ```
 
-Ответ:
+## Что уже реализовано в модуле 2
 
-```json
-{"deleted": true}
-```
+- экспорт метрик приложения через `/metrics`
+- отдельные метрики worker на `9101`
+- `Prometheus` + `Grafana`
+- `node_exporter`, `postgres_exporter`, `redis_exporter`
+- логирование через `Filebeat / rsyslog -> Logstash -> Elasticsearch`
+- кластер `Elasticsearch` из трёх нод
+- индексация логов и `ILM`
+- логовые и метрик-дашборды в `Grafana`
+- расчёт `Availability`, `Failure Rate` и `Error Budget`
 
----
+## Полезные артефакты
 
-## Пример типичного сценария использования
+Экспорт настроек `Grafana` сохраняется в:
 
-### Шаг 1 — проверить API
+- `snapshots/grafana-export/`
 
-```bash
-curl http://127.0.0.1:8000/health
-```
+Там лежат:
 
-### Шаг 2 — добавить цель
+- JSON дашбордов
+- список datasources
+- alert rules
+- contact points
+- notification policies
 
-```bash
-curl -X POST http://127.0.0.1:8000/targets \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Example",
-    "url": "https://example.com",
-    "interval_sec": 30,
-    "timeout_ms": 3000,
-    "enabled": true
-  }'
-```
+## Итог
 
-### Шаг 3 — посмотреть список целей
-
-```bash
-curl http://127.0.0.1:8000/targets
-```
-
-### Шаг 4 — подождать пока worker выполнит проверки
-
-### Шаг 5 — получить текущий статус
-
-```bash
-curl http://127.0.0.1:8000/status/1
-```
-
-### Шаг 6 — посмотреть историю проверок
-
-```bash
-curl "http://127.0.0.1:8000/history/1?limit=5"
-```
+Этот репозиторий содержит не только код самого `uptime-monitor`, но и полноценную инфраструктуру для деплоя, мониторинга, логирования, визуализации, алертинга и расчёта бюджета ошибок.  
+По сути это уже не просто учебное приложение, а небольшой законченный observability-стенд, который можно показывать на защите как цельную DevOps-работу.
