@@ -1,7 +1,4 @@
-Infrastructure configs for uptime-monitor lab
-
-Components:
-- systemd services
-- Redis cluster + Sentinel
-- PostgreSQL backup scripts
-- logrotate configuration
+SLI: доля успешных проверок.
+SLO: не ниже 90% успешных проверок.
+Error budget: не более 10% неуспешных проверок.
+При нарушении порога отправляется алерт.
