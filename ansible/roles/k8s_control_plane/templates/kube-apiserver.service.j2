@@ -1,0 +1,49 @@
+[Unit]
+Description=Kubernetes API Server
+Documentation=https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+After=network-online.target etcd.service
+Wants=network-online.target
+Requires=etcd.service
+
+[Service]
+ExecStart=/usr/local/bin/kube-apiserver \
+  --advertise-address={{ k8s_control_plane_bind_address }} \
+  --allow-privileged=true \
+  --apiserver-count=1 \
+  --authorization-mode=Node,RBAC \
+  --bind-address=0.0.0.0 \
+  --client-ca-file={{ k8s_apiserver_client_ca_file }} \
+  --enable-admission-plugins=NodeRestriction,ServiceAccount,NamespaceLifecycle,LimitRanger,DefaultStorageClass,ResourceQuota \
+  --enable-bootstrap-token-auth=true \
+  --etcd-cafile={{ k8s_apiserver_etcd_ca_file }} \
+  --etcd-certfile={{ k8s_apiserver_etcd_cert_file }} \
+  --etcd-keyfile={{ k8s_apiserver_etcd_key_file }} \
+  --etcd-servers={{ k8s_api_server_etcd_servers }} \
+  --event-ttl=1h \
+  --kubelet-certificate-authority={{ k8s_apiserver_client_ca_file }} \
+  --kubelet-client-certificate={{ k8s_apiserver_kubelet_client_certificate }} \
+  --kubelet-client-key={{ k8s_apiserver_kubelet_client_key }} \
+  --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname \
+  --profiling=false \
+  --proxy-client-cert-file={{ k8s_apiserver_tls_cert_file }} \
+  --proxy-client-key-file={{ k8s_apiserver_tls_private_key_file }} \
+  --requestheader-allowed-names=kubernetes \
+  --requestheader-client-ca-file={{ k8s_apiserver_client_ca_file }} \
+  --requestheader-extra-headers-prefix=X-Remote-Extra- \
+  --requestheader-group-headers=X-Remote-Group \
+  --requestheader-username-headers=X-Remote-User \
+  --runtime-config=api/all=true \
+  --secure-port={{ k8s_api_server_secure_port }} \
+  --service-account-issuer={{ k8s_service_account_issuer }} \
+  --service-account-key-file={{ k8s_service_account_key_file }} \
+  --service-account-signing-key-file={{ k8s_service_account_signing_key_file }} \
+  --service-cluster-ip-range={{ k8s_service_cluster_ip_range }} \
+  --service-node-port-range={{ k8s_node_port_range }} \
+  --tls-cert-file={{ k8s_apiserver_tls_cert_file }} \
+  --tls-private-key-file={{ k8s_apiserver_tls_private_key_file }} \
+  --v=2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
