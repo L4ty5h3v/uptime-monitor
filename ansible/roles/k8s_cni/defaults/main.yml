@@ -1,0 +1,7 @@
+k8s_cni_control_plane_host: "{{ groups['k8s_control_plane'][0] }}"
+k8s_cni_kubeconfig_path: "/home/{{ ansible_user }}/.kube/config"
+k8s_cni_calico_version: v3.32.0
+k8s_cni_calico_manifest_url: "https://raw.githubusercontent.com/projectcalico/calico/{{ k8s_cni_calico_version }}/manifests/calico.yaml"
+k8s_cni_calico_manifest_path: /var/lib/kubernetes/calico.yaml
+k8s_cni_calico_ipv4pool_cidr: 10.200.0.0/16
+k8s_cni_expected_node_count: "{{ groups['k8s_cluster'] | length }}"
