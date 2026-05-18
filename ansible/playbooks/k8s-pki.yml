@@ -1,0 +1,350 @@
+- hosts: localhost
+  gather_facts: no
+  connection: local
+
+  vars:
+    repo_root: "{{ playbook_dir | dirname | dirname }}"
+    local_pki_dir: "{{ repo_root }}/.artifacts/k8s-pki"
+    local_certs_dir: "{{ local_pki_dir }}/certs"
+    local_kubeconfigs_dir: "{{ local_pki_dir }}/kubeconfigs"
+    local_configs_dir: "{{ local_pki_dir }}/configs"
+    cluster_name: uptime-monitor-k8s
+    control_plane_host: "{{ groups['k8s_control_plane'][0] }}"
+    api_server_ip: "{{ hostvars[control_plane_host]['ansible_host'] }}"
+    api_server_endpoint: "https://{{ api_server_ip }}:6443"
+    kubernetes_service_ip: 10.32.0.1
+    kubernetes_service_names:
+      - kubernetes
+      - kubernetes.default
+      - kubernetes.default.svc
+      - kubernetes.default.svc.cluster
+      - kubernetes.default.svc.cluster.local
+    k8s_pki_certs:
+      - name: admin
+        common_name: admin
+        organization: system:masters
+        extended_key_usages:
+          - clientAuth
+      - name: kube-controller-manager
+        common_name: system:kube-controller-manager
+        extended_key_usages:
+          - clientAuth
+      - name: kube-scheduler
+        common_name: system:kube-scheduler
+        extended_key_usages:
+          - clientAuth
+      - name: kube-proxy
+        common_name: system:kube-proxy
+        organization: system:node-proxier
+        extended_key_usages:
+          - clientAuth
+      - name: kube-apiserver-etcd-client
+        common_name: kube-apiserver-etcd-client
+        organization: Kubernetes
+        extended_key_usages:
+          - clientAuth
+      - name: service-account
+        common_name: service-accounts
+        organization: Kubernetes
+        extended_key_usages:
+          - clientAuth
+      - name: kubernetes
+        common_name: kubernetes
+        organization: Kubernetes
+        extended_key_usages:
+          - serverAuth
+          - clientAuth
+        subject_alt_names: "{{ [api_server_ip, '127.0.0.1', kubernetes_service_ip] + kubernetes_service_names }}"
+      - name: etcd-server
+        common_name: etcd-server
+        organization: Kubernetes
+        extended_key_usages:
+          - serverAuth
+          - clientAuth
+        subject_alt_names:
+          - "{{ api_server_ip }}"
+          - 127.0.0.1
+          - "{{ control_plane_host }}"
+      - name: cp1
+        common_name: system:node:cp1
+        organization: system:nodes
+        extended_key_usages:
+          - clientAuth
+          - serverAuth
+        subject_alt_names:
+          - "{{ hostvars['cp1']['ansible_host'] }}"
+          - cp1
+      - name: worker1
+        common_name: system:node:worker1
+        organization: system:nodes
+        extended_key_usages:
+          - clientAuth
+          - serverAuth
+        subject_alt_names:
+          - "{{ hostvars['worker1']['ansible_host'] }}"
+          - worker1
+      - name: worker2
+        common_name: system:node:worker2
+        organization: system:nodes
+        extended_key_usages:
+          - clientAuth
+          - serverAuth
+        subject_alt_names:
+          - "{{ hostvars['worker2']['ansible_host'] }}"
+          - worker2
+      - name: worker3
+        common_name: system:node:worker3
+        organization: system:nodes
+        extended_key_usages:
+          - clientAuth
+          - serverAuth
+        subject_alt_names:
+          - "{{ hostvars['worker3']['ansible_host'] }}"
+          - worker3
+    kubeconfig_specs:
+      - name: admin
+        user_name: admin
+        cert_name: admin
+      - name: kube-controller-manager
+        user_name: system:kube-controller-manager
+        cert_name: kube-controller-manager
+      - name: kube-scheduler
+        user_name: system:kube-scheduler
+        cert_name: kube-scheduler
+      - name: kube-proxy
+        user_name: system:kube-proxy
+        cert_name: kube-proxy
+      - name: cp1
+        user_name: system:node:cp1
+        cert_name: cp1
+      - name: worker1
+        user_name: system:node:worker1
+        cert_name: worker1
+      - name: worker2
+        user_name: system:node:worker2
+        cert_name: worker2
+      - name: worker3
+        user_name: system:node:worker3
+        cert_name: worker3
+
+  tasks:
+    - name: create local pki directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop:
+        - "{{ local_pki_dir }}"
+        - "{{ local_certs_dir }}"
+        - "{{ local_kubeconfigs_dir }}"
+        - "{{ local_configs_dir }}"
+
+    - name: create certificate authority private key
+      command: "openssl genrsa -out {{ local_certs_dir }}/ca-key.pem 4096"
+      args:
+        creates: "{{ local_certs_dir }}/ca-key.pem"
+
+    - name: create certificate authority certificate
+      command: >
+        openssl req -x509 -new -nodes
+        -key {{ local_certs_dir }}/ca-key.pem
+        -sha256 -days 3650
+        -subj /CN=Kubernetes
+        -out {{ local_certs_dir }}/ca.pem
+      args:
+        creates: "{{ local_certs_dir }}/ca.pem"
+
+    - name: generate certificate request config
+      template:
+        src: ../templates/k8s/openssl-request.cnf.j2
+        dest: "{{ local_configs_dir }}/{{ item.name }}-req.cnf"
+        mode: "0600"
+      vars:
+        cert_common_name: "{{ item.common_name }}"
+        cert_organization: "{{ item.organization | default('') }}"
+      loop: "{{ k8s_pki_certs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: generate certificate extension config
+      template:
+        src: ../templates/k8s/openssl-ext.cnf.j2
+        dest: "{{ local_configs_dir }}/{{ item.name }}-ext.cnf"
+        mode: "0600"
+      vars:
+        cert_extended_key_usages: "{{ item.extended_key_usages }}"
+        cert_subject_alt_names: "{{ item.subject_alt_names | default([]) }}"
+      loop: "{{ k8s_pki_certs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: create private keys for component certificates
+      command: "openssl genrsa -out {{ local_certs_dir }}/{{ item.name }}-key.pem 4096"
+      args:
+        creates: "{{ local_certs_dir }}/{{ item.name }}-key.pem"
+      loop: "{{ k8s_pki_certs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: create certificate signing requests
+      command: >
+        openssl req -new
+        -key {{ local_certs_dir }}/{{ item.name }}-key.pem
+        -out {{ local_certs_dir }}/{{ item.name }}.csr
+        -config {{ local_configs_dir }}/{{ item.name }}-req.cnf
+      args:
+        creates: "{{ local_certs_dir }}/{{ item.name }}.csr"
+      loop: "{{ k8s_pki_certs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: sign component certificates
+      command: >
+        openssl x509 -req
+        -in {{ local_certs_dir }}/{{ item.name }}.csr
+        -CA {{ local_certs_dir }}/ca.pem
+        -CAkey {{ local_certs_dir }}/ca-key.pem
+        -CAcreateserial
+        -out {{ local_certs_dir }}/{{ item.name }}.pem
+        -days 3650
+        -sha256
+        -extensions v3_req
+        -extfile {{ local_configs_dir }}/{{ item.name }}-ext.cnf
+      args:
+        creates: "{{ local_certs_dir }}/{{ item.name }}.pem"
+      loop: "{{ k8s_pki_certs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: render kubeconfig files
+      template:
+        src: ../templates/k8s/kubeconfig.yaml.j2
+        dest: "{{ local_kubeconfigs_dir }}/{{ item.name }}.kubeconfig"
+        mode: "0600"
+      vars:
+        kubeconfig_cluster_name: "{{ cluster_name }}"
+        kubeconfig_server: "{{ api_server_endpoint }}"
+        kubeconfig_user_name: "{{ item.user_name }}"
+        kubeconfig_ca_path: "{{ local_certs_dir }}/ca.pem"
+        kubeconfig_client_cert_path: "{{ local_certs_dir }}/{{ item.cert_name }}.pem"
+        kubeconfig_client_key_path: "{{ local_certs_dir }}/{{ item.cert_name }}-key.pem"
+      loop: "{{ kubeconfig_specs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+- hosts: k8s_control_plane
+  become: yes
+
+  vars:
+    repo_root: "{{ playbook_dir | dirname | dirname }}"
+    local_pki_dir: "{{ repo_root }}/.artifacts/k8s-pki"
+    local_certs_dir: "{{ local_pki_dir }}/certs"
+    local_kubeconfigs_dir: "{{ local_pki_dir }}/kubeconfigs"
+
+  tasks:
+    - name: copy control plane CA bundle
+      copy:
+        src: "{{ local_certs_dir }}/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: "ca.pem", dest: "/var/lib/kubernetes/ca.pem", mode: "0644" }
+        - { src: "ca-key.pem", dest: "/var/lib/kubernetes/ca-key.pem", mode: "0600" }
+        - { src: "kubernetes.pem", dest: "/var/lib/kubernetes/kubernetes.pem", mode: "0644" }
+        - { src: "kubernetes-key.pem", dest: "/var/lib/kubernetes/kubernetes-key.pem", mode: "0600" }
+        - { src: "kube-apiserver-etcd-client.pem", dest: "/var/lib/kubernetes/kube-apiserver-etcd-client.pem", mode: "0644" }
+        - { src: "kube-apiserver-etcd-client-key.pem", dest: "/var/lib/kubernetes/kube-apiserver-etcd-client-key.pem", mode: "0600" }
+        - { src: "service-account.pem", dest: "/var/lib/kubernetes/service-account.pem", mode: "0644" }
+        - { src: "service-account-key.pem", dest: "/var/lib/kubernetes/service-account-key.pem", mode: "0600" }
+
+    - name: copy etcd certificates
+      copy:
+        src: "{{ local_certs_dir }}/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: "ca.pem", dest: "/etc/etcd/ca.pem", mode: "0644" }
+        - { src: "etcd-server.pem", dest: "/etc/etcd/etcd-server.pem", mode: "0644" }
+        - { src: "etcd-server-key.pem", dest: "/etc/etcd/etcd-server-key.pem", mode: "0600" }
+
+    - name: copy control plane kubeconfigs
+      copy:
+        src: "{{ local_kubeconfigs_dir }}/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "0600"
+      loop:
+        - { src: "kube-controller-manager.kubeconfig", dest: "/var/lib/kubernetes/kube-controller-manager.kubeconfig" }
+        - { src: "kube-scheduler.kubeconfig", dest: "/var/lib/kubernetes/kube-scheduler.kubeconfig" }
+        - { src: "kube-proxy.kubeconfig", dest: "/var/lib/kube-proxy/kubeconfig" }
+
+    - name: create admin kubeconfig directory for control plane user
+      file:
+        path: "/home/{{ hostvars[inventory_hostname]['ansible_user'] }}/.kube"
+        state: directory
+        owner: "{{ hostvars[inventory_hostname]['ansible_user'] }}"
+        group: "{{ hostvars[inventory_hostname]['ansible_user'] }}"
+        mode: "0700"
+
+    - name: install admin kubeconfig for control plane user
+      copy:
+        src: "{{ local_kubeconfigs_dir }}/admin.kubeconfig"
+        dest: "/home/{{ hostvars[inventory_hostname]['ansible_user'] }}/.kube/config"
+        owner: "{{ hostvars[inventory_hostname]['ansible_user'] }}"
+        group: "{{ hostvars[inventory_hostname]['ansible_user'] }}"
+        mode: "0600"
+
+- hosts: k8s_cluster
+  become: yes
+
+  vars:
+    repo_root: "{{ playbook_dir | dirname | dirname }}"
+    local_pki_dir: "{{ repo_root }}/.artifacts/k8s-pki"
+    local_certs_dir: "{{ local_pki_dir }}/certs"
+    local_kubeconfigs_dir: "{{ local_pki_dir }}/kubeconfigs"
+
+  tasks:
+    - name: copy node CA certificate
+      copy:
+        src: "{{ local_certs_dir }}/ca.pem"
+        dest: /var/lib/kubernetes/ca.pem
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: copy node certificate
+      copy:
+        src: "{{ local_certs_dir }}/{{ inventory_hostname }}.pem"
+        dest: "/var/lib/kubelet/{{ inventory_hostname }}.pem"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: copy node private key
+      copy:
+        src: "{{ local_certs_dir }}/{{ inventory_hostname }}-key.pem"
+        dest: "/var/lib/kubelet/{{ inventory_hostname }}-key.pem"
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: copy kubelet kubeconfig
+      copy:
+        src: "{{ local_kubeconfigs_dir }}/{{ inventory_hostname }}.kubeconfig"
+        dest: /var/lib/kubelet/kubeconfig
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: copy kube-proxy kubeconfig to every node
+      copy:
+        src: "{{ local_kubeconfigs_dir }}/kube-proxy.kubeconfig"
+        dest: /var/lib/kube-proxy/kubeconfig
+        owner: root
+        group: root
+        mode: "0600"

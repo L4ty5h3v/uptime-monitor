@@ -1,0 +1,11 @@
+[ req ]
+default_bits       = 4096
+prompt             = no
+default_md         = sha256
+distinguished_name = req_distinguished_name
+
+[ req_distinguished_name ]
+CN = {{ cert_common_name }}
+{% if cert_organization %}
+O = {{ cert_organization }}
+{% endif %}
