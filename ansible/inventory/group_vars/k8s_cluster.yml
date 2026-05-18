@@ -16,4 +16,37 @@ k8s_bootstrap_packages:
   - software-properties-common
   - containerd
 
+k8s_support_packages:
+  - conntrack
+  - ipset
+  - socat
+  - ebtables
+
 containerd_config_path: /etc/containerd/config.toml
+
+kubernetes_version: v1.36.0
+kubernetes_arch_map:
+  x86_64: amd64
+  aarch64: arm64
+kubernetes_arch: "{{ kubernetes_arch_map.get(ansible_facts['architecture'], ansible_facts['architecture']) }}"
+etcd_version: v3.6.10
+cni_plugins_version: v1.9.1
+
+kubernetes_bin_dir: /usr/local/bin
+kubernetes_download_base: https://dl.k8s.io/release
+etcd_download_base: https://github.com/etcd-io/etcd/releases/download
+cni_plugins_download_base: https://github.com/containernetworking/plugins/releases/download
+
+k8s_common_directories:
+  - /etc/cni/net.d
+  - /etc/kubernetes/config
+  - /opt/cni/bin
+  - /var/lib/kubelet
+  - /var/lib/kube-proxy
+  - /var/lib/kubernetes
+  - /var/run/kubernetes
+
+k8s_control_plane_directories:
+  - /etc/etcd
+  - /var/lib/etcd
+  - /var/log/kubernetes
