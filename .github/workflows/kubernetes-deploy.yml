@@ -1,0 +1,75 @@
+name: Kubernetes deploy pipeline
+
+on:
+  push:
+    branches:
+      - kubernetes
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target Kubernetes namespace"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/uptime-monitor
+  HELM_CHART_PATH: ./helm/uptime-monitor
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    env:
+      DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        run: |
+          docker build -t "${IMAGE_REPOSITORY}:${IMAGE_TAG}" .
+          docker push "${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.36.0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "${HOME}/.kube"
+          echo "${KUBECONFIG_B64}" | base64 --decode > "${HOME}/.kube/config"
+          chmod 600 "${HOME}/.kube/config"
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+
+      - name: Deploy application with Helm
+        run: |
+          helm upgrade --install uptime-monitor "${HELM_CHART_PATH}" \
+            --namespace "${DEPLOY_ENV}" \
+            --create-namespace \
+            -f "${HELM_CHART_PATH}/values-${DEPLOY_ENV}.yaml" \
+            --set image.repository="${IMAGE_REPOSITORY}" \
+            --set image.tag="${IMAGE_TAG}"

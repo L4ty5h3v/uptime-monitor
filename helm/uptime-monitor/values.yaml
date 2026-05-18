@@ -1,0 +1,71 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ghcr.io/l4ty5h3v/uptime-monitor
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+config:
+  apiHost: "0.0.0.0"
+  apiPort: "8000"
+  redisMasterName: "mymaster"
+  redisDb: "0"
+  ttlLastStatusSec: "120"
+  ttlFailcountSec: "300"
+  workerTickSec: "1"
+  defaultSlowThresholdMs: "800"
+
+secret:
+  databaseUrl: "postgresql+psycopg://CHANGE_ME:CHANGE_ME@10.211.55.3:5432/uptime_monitor"
+  redisSentinelHosts: "10.211.55.3:26379,10.211.55.3:26380,10.211.55.3:26381"
+  redisPassword: ""
+
+api:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  service:
+    type: ClusterIP
+    port: 80
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+
+worker:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+
+migration:
+  enabled: true
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 300
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: uptime-monitor.local
+      paths:
+        - path: /
+          pathType: Prefix
