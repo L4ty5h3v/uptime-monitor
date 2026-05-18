@@ -1,0 +1,39 @@
+- name: copy node CA certificate
+  copy:
+    src: "{{ k8s_pki_local_certs_dir }}/ca.pem"
+    dest: /var/lib/kubernetes/ca.pem
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: copy node certificate
+  copy:
+    src: "{{ k8s_pki_local_certs_dir }}/{{ inventory_hostname }}.pem"
+    dest: "/var/lib/kubelet/{{ inventory_hostname }}.pem"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: copy node private key
+  copy:
+    src: "{{ k8s_pki_local_certs_dir }}/{{ inventory_hostname }}-key.pem"
+    dest: "/var/lib/kubelet/{{ inventory_hostname }}-key.pem"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: copy kubelet kubeconfig
+  copy:
+    src: "{{ k8s_pki_local_kubeconfigs_dir }}/{{ inventory_hostname }}.kubeconfig"
+    dest: /var/lib/kubelet/kubeconfig
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: copy kube-proxy kubeconfig to every node
+  copy:
+    src: "{{ k8s_pki_local_kubeconfigs_dir }}/kube-proxy.kubeconfig"
+    dest: /var/lib/kube-proxy/kubeconfig
+    owner: root
+    group: root
+    mode: "0600"
