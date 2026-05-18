@@ -1,0 +1,120 @@
+- name: install kubernetes support packages
+  apt:
+    name: "{{ k8s_support_packages }}"
+    state: present
+    update_cache: yes
+    lock_timeout: 300
+
+- name: create common kubernetes directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ k8s_common_directories }}"
+
+- name: download kubelet binary
+  get_url:
+    url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kubelet"
+    dest: "{{ kubernetes_bin_dir }}/kubelet"
+    mode: "0755"
+
+- name: download kubectl binary
+  get_url:
+    url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kubectl"
+    dest: "{{ kubernetes_bin_dir }}/kubectl"
+    mode: "0755"
+
+- name: download kube-proxy binary
+  get_url:
+    url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kube-proxy"
+    dest: "{{ kubernetes_bin_dir }}/kube-proxy"
+    mode: "0755"
+
+- name: download CNI plugins archive
+  get_url:
+    url: "{{ cni_plugins_download_base }}/{{ cni_plugins_version }}/cni-plugins-linux-{{ kubernetes_arch }}-{{ cni_plugins_version }}.tgz"
+    dest: "/tmp/cni-plugins-linux-{{ kubernetes_arch }}-{{ cni_plugins_version }}.tgz"
+    mode: "0644"
+
+- name: extract CNI plugins
+  unarchive:
+    src: "/tmp/cni-plugins-linux-{{ kubernetes_arch }}-{{ cni_plugins_version }}.tgz"
+    dest: /opt/cni/bin
+    remote_src: yes
+
+- name: remove CNI plugins archive
+  file:
+    path: "/tmp/cni-plugins-linux-{{ kubernetes_arch }}-{{ cni_plugins_version }}.tgz"
+    state: absent
+
+- name: create control plane specific directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ k8s_control_plane_directories }}"
+  when: inventory_hostname in groups["k8s_control_plane"]
+
+- name: download kube-apiserver binary
+  get_url:
+    url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kube-apiserver"
+    dest: "{{ kubernetes_bin_dir }}/kube-apiserver"
+    mode: "0755"
+  when: inventory_hostname in groups["k8s_control_plane"]
+
+- name: download kube-controller-manager binary
+  get_url:
+    url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kube-controller-manager"
+    dest: "{{ kubernetes_bin_dir }}/kube-controller-manager"
+    mode: "0755"
+  when: inventory_hostname in groups["k8s_control_plane"]
+
+- name: download kube-scheduler binary
+  get_url:
+    url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kube-scheduler"
+    dest: "{{ kubernetes_bin_dir }}/kube-scheduler"
+    mode: "0755"
+  when: inventory_hostname in groups["k8s_control_plane"]
+
+- name: download etcd archive
+  get_url:
+    url: "{{ etcd_download_base }}/{{ etcd_version }}/etcd-{{ etcd_version }}-linux-{{ kubernetes_arch }}.tar.gz"
+    dest: "/tmp/etcd-{{ etcd_version }}-linux-{{ kubernetes_arch }}.tar.gz"
+    mode: "0644"
+  when: inventory_hostname in groups["k8s_control_plane"]
+
+- name: extract etcd archive
+  unarchive:
+    src: "/tmp/etcd-{{ etcd_version }}-linux-{{ kubernetes_arch }}.tar.gz"
+    dest: /tmp
+    remote_src: yes
+  when: inventory_hostname in groups["k8s_control_plane"]
+
+- name: install etcd binaries
+  copy:
+    src: "/tmp/etcd-{{ etcd_version }}-linux-{{ kubernetes_arch }}/{{ item }}"
+    dest: "{{ kubernetes_bin_dir }}/{{ item }}"
+    remote_src: yes
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - etcd
+    - etcdctl
+  when: inventory_hostname in groups["k8s_control_plane"]
+
+- name: remove extracted etcd directory
+  file:
+    path: "/tmp/etcd-{{ etcd_version }}-linux-{{ kubernetes_arch }}"
+    state: absent
+  when: inventory_hostname in groups["k8s_control_plane"]
+
+- name: remove etcd archive
+  file:
+    path: "/tmp/etcd-{{ etcd_version }}-linux-{{ kubernetes_arch }}.tar.gz"
+    state: absent
+  when: inventory_hostname in groups["k8s_control_plane"]

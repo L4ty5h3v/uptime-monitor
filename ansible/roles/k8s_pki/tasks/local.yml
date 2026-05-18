@@ -1,0 +1,103 @@
+- name: create local pki directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0700"
+  loop:
+    - "{{ k8s_pki_local_dir }}"
+    - "{{ k8s_pki_local_certs_dir }}"
+    - "{{ k8s_pki_local_kubeconfigs_dir }}"
+    - "{{ k8s_pki_local_configs_dir }}"
+
+- name: create certificate authority private key
+  command: "openssl genrsa -out {{ k8s_pki_local_certs_dir }}/ca-key.pem 4096"
+  args:
+    creates: "{{ k8s_pki_local_certs_dir }}/ca-key.pem"
+
+- name: create certificate authority certificate
+  command: >
+    openssl req -x509 -new -nodes
+    -key {{ k8s_pki_local_certs_dir }}/ca-key.pem
+    -sha256 -days 3650
+    -subj /CN=Kubernetes
+    -out {{ k8s_pki_local_certs_dir }}/ca.pem
+  args:
+    creates: "{{ k8s_pki_local_certs_dir }}/ca.pem"
+
+- name: generate certificate request config
+  template:
+    src: openssl-request.cnf.j2
+    dest: "{{ k8s_pki_local_configs_dir }}/{{ item.name }}-req.cnf"
+    mode: "0600"
+  vars:
+    cert_common_name: "{{ item.common_name }}"
+    cert_organization: "{{ item.organization | default('') }}"
+  loop: "{{ k8s_pki_certs }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: generate certificate extension config
+  template:
+    src: openssl-ext.cnf.j2
+    dest: "{{ k8s_pki_local_configs_dir }}/{{ item.name }}-ext.cnf"
+    mode: "0600"
+  vars:
+    cert_extended_key_usages: "{{ item.extended_key_usages }}"
+    cert_subject_alt_names: "{{ item.subject_alt_names | default([]) }}"
+  loop: "{{ k8s_pki_certs }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: create private keys for component certificates
+  command: "openssl genrsa -out {{ k8s_pki_local_certs_dir }}/{{ item.name }}-key.pem 4096"
+  args:
+    creates: "{{ k8s_pki_local_certs_dir }}/{{ item.name }}-key.pem"
+  loop: "{{ k8s_pki_certs }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: create certificate signing requests
+  command: >
+    openssl req -new
+    -key {{ k8s_pki_local_certs_dir }}/{{ item.name }}-key.pem
+    -out {{ k8s_pki_local_certs_dir }}/{{ item.name }}.csr
+    -config {{ k8s_pki_local_configs_dir }}/{{ item.name }}-req.cnf
+  args:
+    creates: "{{ k8s_pki_local_certs_dir }}/{{ item.name }}.csr"
+  loop: "{{ k8s_pki_certs }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: sign component certificates
+  command: >
+    openssl x509 -req
+    -in {{ k8s_pki_local_certs_dir }}/{{ item.name }}.csr
+    -CA {{ k8s_pki_local_certs_dir }}/ca.pem
+    -CAkey {{ k8s_pki_local_certs_dir }}/ca-key.pem
+    -CAcreateserial
+    -out {{ k8s_pki_local_certs_dir }}/{{ item.name }}.pem
+    -days 3650
+    -sha256
+    -extensions v3_req
+    -extfile {{ k8s_pki_local_configs_dir }}/{{ item.name }}-ext.cnf
+  args:
+    creates: "{{ k8s_pki_local_certs_dir }}/{{ item.name }}.pem"
+  loop: "{{ k8s_pki_certs }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: render kubeconfig files
+  template:
+    src: kubeconfig.yaml.j2
+    dest: "{{ k8s_pki_local_kubeconfigs_dir }}/{{ item.name }}.kubeconfig"
+    mode: "0600"
+  vars:
+    kubeconfig_cluster_name: "{{ k8s_pki_cluster_name }}"
+    kubeconfig_server: "{{ k8s_pki_api_server_endpoint }}"
+    kubeconfig_user_name: "{{ item.user_name }}"
+    kubeconfig_ca_path: "{{ k8s_pki_local_certs_dir }}/ca.pem"
+    kubeconfig_client_cert_path: "{{ k8s_pki_local_certs_dir }}/{{ item.cert_name }}.pem"
+    kubeconfig_client_key_path: "{{ k8s_pki_local_certs_dir }}/{{ item.cert_name }}-key.pem"
+  loop: "{{ k8s_pki_kubeconfig_specs }}"
+  loop_control:
+    label: "{{ item.name }}"
