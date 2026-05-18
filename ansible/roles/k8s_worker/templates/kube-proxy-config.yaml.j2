@@ -1,0 +1,10 @@
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+bindAddress: "{{ k8s_worker_kube_proxy_bind_address }}"
+clientConnection:
+  kubeconfig: "{{ k8s_worker_kube_proxy_kubeconfig_path }}"
+clusterCIDR: "{{ k8s_worker_kube_proxy_cluster_cidr }}"
+healthzBindAddress: "{{ k8s_worker_kube_proxy_healthz_bind_address }}"
+hostnameOverride: "{{ k8s_worker_kube_proxy_hostname_override }}"
+metricsBindAddress: "{{ k8s_worker_kube_proxy_metrics_bind_address }}"
+mode: "{{ k8s_worker_kube_proxy_mode }}"
