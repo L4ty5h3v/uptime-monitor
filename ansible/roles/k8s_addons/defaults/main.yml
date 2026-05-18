@@ -1,0 +1,8 @@
+k8s_addons_manifest_dir: /var/lib/kubernetes/addons
+k8s_addons_kubeconfig_path: "/home/{{ ansible_user }}/.kube/config"
+k8s_addons_cluster_dns_service_ip: 10.32.0.10
+k8s_addons_cluster_domain: cluster.local
+k8s_addons_coredns_image: docker.io/coredns/coredns:1.12.2
+k8s_addons_coredns_upstream_servers:
+  - 1.1.1.1
+  - 8.8.8.8
