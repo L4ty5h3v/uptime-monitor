@@ -1,0 +1,32 @@
+[Unit]
+Description=etcd
+Documentation=https://etcd.io/docs/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/usr/local/bin/etcd \
+  --name={{ k8s_etcd_name }} \
+  --cert-file={{ k8s_etcd_cert_file }} \
+  --key-file={{ k8s_etcd_key_file }} \
+  --peer-cert-file={{ k8s_etcd_cert_file }} \
+  --peer-key-file={{ k8s_etcd_key_file }} \
+  --trusted-ca-file={{ k8s_etcd_ca_file }} \
+  --peer-trusted-ca-file={{ k8s_etcd_ca_file }} \
+  --peer-client-cert-auth=true \
+  --client-cert-auth=true \
+  --initial-advertise-peer-urls={{ k8s_etcd_initial_advertise_peer_urls }} \
+  --listen-peer-urls={{ k8s_etcd_listen_peer_urls }} \
+  --listen-client-urls={{ k8s_etcd_listen_client_urls }} \
+  --advertise-client-urls={{ k8s_etcd_advertise_client_urls }} \
+  --initial-cluster-token=etcd-cluster-0 \
+  --initial-cluster={{ k8s_etcd_initial_cluster }} \
+  --initial-cluster-state=new \
+  --data-dir={{ k8s_etcd_data_dir }}
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=40000
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,49 @@
+- name: ensure etcd directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ k8s_etcd_data_dir }}"
+    - "{{ k8s_etcd_cert_dir }}"
+
+- name: install etcd systemd unit
+  template:
+    src: etcd.service.j2
+    dest: "{{ k8s_etcd_unit_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart etcd
+
+- name: ensure etcd service is enabled and started
+  systemd:
+    name: etcd
+    daemon_reload: yes
+    enabled: yes
+    state: started
+
+- name: wait for etcd client port
+  wait_for:
+    host: 127.0.0.1
+    port: 2379
+    delay: 2
+    timeout: 30
+
+- name: verify etcd health
+  command: >
+    /usr/local/bin/etcdctl
+    --endpoints={{ k8s_etcd_client_endpoints }}
+    --cacert={{ k8s_etcd_ca_file }}
+    --cert={{ k8s_etcd_cert_file }}
+    --key={{ k8s_etcd_key_file }}
+    endpoint health
+  environment:
+    ETCDCTL_API: "3"
+  register: k8s_etcd_health
+  changed_when: false
+  retries: 5
+  delay: 3
+  until: k8s_etcd_health.rc == 0

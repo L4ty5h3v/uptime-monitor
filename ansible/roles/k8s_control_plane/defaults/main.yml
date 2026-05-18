@@ -1,0 +1,27 @@
+k8s_control_plane_bind_address: "{{ ansible_host }}"
+k8s_cluster_name: uptime-monitor-k8s
+k8s_control_plane_unit_dir: /etc/systemd/system
+k8s_control_plane_config_dir: /etc/kubernetes/config
+k8s_control_plane_log_dir: /var/log/kubernetes
+k8s_kubernetes_cert_dir: /var/lib/kubernetes
+k8s_service_cluster_ip_range: 10.32.0.0/24
+k8s_cluster_cidr: 10.200.0.0/16
+k8s_node_port_range: 30000-32767
+k8s_api_server_secure_port: 6443
+k8s_api_server_etcd_servers: https://127.0.0.1:2379
+k8s_service_account_issuer: https://kubernetes.default.svc.cluster.local
+k8s_scheduler_config_path: "{{ k8s_control_plane_config_dir }}/kube-scheduler.yaml"
+k8s_controller_manager_kubeconfig: "{{ k8s_kubernetes_cert_dir }}/kube-controller-manager.kubeconfig"
+k8s_scheduler_kubeconfig: "{{ k8s_kubernetes_cert_dir }}/kube-scheduler.kubeconfig"
+k8s_apiserver_client_ca_file: "{{ k8s_kubernetes_cert_dir }}/ca.pem"
+k8s_apiserver_tls_cert_file: "{{ k8s_kubernetes_cert_dir }}/kubernetes.pem"
+k8s_apiserver_tls_private_key_file: "{{ k8s_kubernetes_cert_dir }}/kubernetes-key.pem"
+k8s_apiserver_kubelet_client_certificate: "{{ k8s_kubernetes_cert_dir }}/kubernetes.pem"
+k8s_apiserver_kubelet_client_key: "{{ k8s_kubernetes_cert_dir }}/kubernetes-key.pem"
+k8s_apiserver_etcd_ca_file: /etc/etcd/ca.pem
+k8s_apiserver_etcd_cert_file: "{{ k8s_kubernetes_cert_dir }}/kube-apiserver-etcd-client.pem"
+k8s_apiserver_etcd_key_file: "{{ k8s_kubernetes_cert_dir }}/kube-apiserver-etcd-client-key.pem"
+k8s_service_account_key_file: "{{ k8s_kubernetes_cert_dir }}/service-account.pem"
+k8s_service_account_signing_key_file: "{{ k8s_kubernetes_cert_dir }}/service-account-key.pem"
+k8s_ca_key_file: "{{ k8s_kubernetes_cert_dir }}/ca-key.pem"
+k8s_control_plane_admin_kubeconfig: "/home/{{ ansible_user }}/.kube/config"

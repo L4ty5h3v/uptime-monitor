@@ -1,0 +1,13 @@
+k8s_etcd_name: "{{ inventory_hostname }}"
+k8s_etcd_initial_cluster: "{{ inventory_hostname }}=https://{{ ansible_host }}:2380"
+k8s_etcd_listen_peer_urls: "https://{{ ansible_host }}:2380"
+k8s_etcd_initial_advertise_peer_urls: "https://{{ ansible_host }}:2380"
+k8s_etcd_listen_client_urls: "https://{{ ansible_host }}:2379,https://127.0.0.1:2379"
+k8s_etcd_advertise_client_urls: "https://{{ ansible_host }}:2379"
+k8s_etcd_data_dir: /var/lib/etcd
+k8s_etcd_cert_dir: /etc/etcd
+k8s_etcd_unit_path: /etc/systemd/system/etcd.service
+k8s_etcd_ca_file: "{{ k8s_etcd_cert_dir }}/ca.pem"
+k8s_etcd_cert_file: "{{ k8s_etcd_cert_dir }}/etcd-server.pem"
+k8s_etcd_key_file: "{{ k8s_etcd_cert_dir }}/etcd-server-key.pem"
+k8s_etcd_client_endpoints: "https://127.0.0.1:2379"

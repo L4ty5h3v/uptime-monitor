@@ -1,0 +1,83 @@
+- name: ensure control plane directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ k8s_control_plane_config_dir }}"
+    - "{{ k8s_control_plane_log_dir }}"
+
+- name: install kube-scheduler config
+  template:
+    src: kube-scheduler.yaml.j2
+    dest: "{{ k8s_scheduler_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kube-scheduler
+
+- name: install kube-apiserver systemd unit
+  template:
+    src: kube-apiserver.service.j2
+    dest: "{{ k8s_control_plane_unit_dir }}/kube-apiserver.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kube-apiserver
+
+- name: install kube-controller-manager systemd unit
+  template:
+    src: kube-controller-manager.service.j2
+    dest: "{{ k8s_control_plane_unit_dir }}/kube-controller-manager.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kube-controller-manager
+
+- name: install kube-scheduler systemd unit
+  template:
+    src: kube-scheduler.service.j2
+    dest: "{{ k8s_control_plane_unit_dir }}/kube-scheduler.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kube-scheduler
+
+- name: ensure kube-apiserver service is enabled and started
+  systemd:
+    name: kube-apiserver
+    daemon_reload: yes
+    enabled: yes
+    state: started
+
+- name: ensure kube-controller-manager service is enabled and started
+  systemd:
+    name: kube-controller-manager
+    enabled: yes
+    state: started
+
+- name: ensure kube-scheduler service is enabled and started
+  systemd:
+    name: kube-scheduler
+    enabled: yes
+    state: started
+
+- name: wait for kube-apiserver port
+  wait_for:
+    host: 127.0.0.1
+    port: "{{ k8s_api_server_secure_port }}"
+    delay: 2
+    timeout: 60
+
+- name: verify kube-apiserver readyz endpoint
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_control_plane_admin_kubeconfig }}
+    get --raw=/readyz
+  register: k8s_apiserver_readyz
+  changed_when: false
+  retries: 10
+  delay: 5
+  until: k8s_apiserver_readyz.rc == 0
