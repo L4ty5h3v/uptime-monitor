@@ -1,0 +1,61 @@
+- name: ensure addon manifest directory exists
+  file:
+    path: "{{ k8s_addons_manifest_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: render kubelet api access RBAC manifest
+  template:
+    src: kube-apiserver-to-kubelet-rbac.yaml.j2
+    dest: "{{ k8s_addons_manifest_dir }}/kube-apiserver-to-kubelet-rbac.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: render CoreDNS manifest
+  template:
+    src: coredns.yaml.j2
+    dest: "{{ k8s_addons_manifest_dir }}/coredns.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: apply kubelet api access RBAC manifest
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_addons_kubeconfig_path }}
+    apply -f {{ k8s_addons_manifest_dir }}/kube-apiserver-to-kubelet-rbac.yaml
+  register: k8s_addons_rbac_apply
+  changed_when: "'created' in k8s_addons_rbac_apply.stdout or 'configured' in k8s_addons_rbac_apply.stdout"
+
+- name: apply CoreDNS manifest
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_addons_kubeconfig_path }}
+    apply -f {{ k8s_addons_manifest_dir }}/coredns.yaml
+  register: k8s_addons_coredns_apply
+  changed_when: "'created' in k8s_addons_coredns_apply.stdout or 'configured' in k8s_addons_coredns_apply.stdout"
+
+- name: wait for CoreDNS rollout
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_addons_kubeconfig_path }}
+    -n kube-system rollout status deployment/coredns --timeout=180s
+  register: k8s_addons_coredns_rollout
+  changed_when: false
+  retries: 3
+  delay: 10
+  until: k8s_addons_coredns_rollout.rc == 0
+
+- name: verify kube-apiserver can read pod logs through kubelet proxy
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_addons_kubeconfig_path }}
+    logs -n kube-system deployment/calico-kube-controllers --tail=5
+  register: k8s_addons_logs_check
+  changed_when: false
+  retries: 6
+  delay: 5
+  until: k8s_addons_logs_check.rc == 0
