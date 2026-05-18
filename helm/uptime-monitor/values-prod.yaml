@@ -1,0 +1,15 @@
+image:
+  tag: prod
+
+api:
+  replicas: 2
+
+worker:
+  replicas: 1
+
+secret:
+  databaseUrl: "postgresql+psycopg://CHANGE_ME:CHANGE_ME@10.211.55.3:5432/uptime_monitor"
+  redisSentinelHosts: "10.211.55.3:26379,10.211.55.3:26380,10.211.55.3:26381"
+
+ingress:
+  enabled: false
