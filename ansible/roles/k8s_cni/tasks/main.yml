@@ -1,0 +1,60 @@
+- name: download official Calico manifest
+  get_url:
+    url: "{{ k8s_cni_calico_manifest_url }}"
+    dest: "{{ k8s_cni_calico_manifest_path }}"
+    mode: "0644"
+
+- name: enable Calico IPv4 pool CIDR override
+  replace:
+    path: "{{ k8s_cni_calico_manifest_path }}"
+    regexp: '(?m)^(\s*)# - name: CALICO_IPV4POOL_CIDR$'
+    replace: '\1- name: CALICO_IPV4POOL_CIDR'
+
+- name: set Calico IPv4 pool CIDR
+  replace:
+    path: "{{ k8s_cni_calico_manifest_path }}"
+    regexp: '(?m)^(\s*)#\s+value: "192\.168\.0\.0/16"$'
+    replace: '\1  value: "{{ k8s_cni_calico_ipv4pool_cidr }}"'
+
+- name: apply Calico manifest
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_cni_kubeconfig_path }}
+    apply -f {{ k8s_cni_calico_manifest_path }}
+  register: k8s_cni_apply
+  changed_when: "'created' in k8s_cni_apply.stdout or 'configured' in k8s_cni_apply.stdout"
+
+- name: wait for calico-node daemonset rollout
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_cni_kubeconfig_path }}
+    -n kube-system rollout status daemonset/calico-node --timeout=180s
+  register: k8s_cni_calico_node_rollout
+  changed_when: false
+  retries: 3
+  delay: 10
+  until: k8s_cni_calico_node_rollout.rc == 0
+
+- name: wait for calico-kube-controllers deployment rollout
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_cni_kubeconfig_path }}
+    -n kube-system rollout status deployment/calico-kube-controllers --timeout=180s
+  register: k8s_cni_kube_controllers_rollout
+  changed_when: false
+  retries: 3
+  delay: 10
+  until: k8s_cni_kube_controllers_rollout.rc == 0
+
+- name: wait for all cluster nodes to become Ready
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_cni_kubeconfig_path }}
+    get nodes --no-headers
+  register: k8s_cni_nodes
+  changed_when: false
+  retries: 20
+  delay: 10
+  until:
+    - k8s_cni_nodes.stdout_lines | length >= k8s_cni_expected_node_count | int
+    - (k8s_cni_nodes.stdout_lines | select('search', '\\bReady\\b') | list | length) >= k8s_cni_expected_node_count | int
