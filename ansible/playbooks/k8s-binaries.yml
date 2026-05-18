@@ -23,21 +23,18 @@
         url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kubelet"
         dest: "{{ kubernetes_bin_dir }}/kubelet"
         mode: "0755"
-        force: true
 
     - name: download kubectl binary
       get_url:
         url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kubectl"
         dest: "{{ kubernetes_bin_dir }}/kubectl"
         mode: "0755"
-        force: true
 
     - name: download kube-proxy binary
       get_url:
         url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kube-proxy"
         dest: "{{ kubernetes_bin_dir }}/kube-proxy"
         mode: "0755"
-        force: true
 
     - name: download CNI plugins archive
       get_url:
@@ -74,21 +71,18 @@
         url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kube-apiserver"
         dest: "{{ kubernetes_bin_dir }}/kube-apiserver"
         mode: "0755"
-        force: true
 
     - name: download kube-controller-manager binary
       get_url:
         url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kube-controller-manager"
         dest: "{{ kubernetes_bin_dir }}/kube-controller-manager"
         mode: "0755"
-        force: true
 
     - name: download kube-scheduler binary
       get_url:
         url: "{{ kubernetes_download_base }}/{{ kubernetes_version }}/bin/linux/{{ kubernetes_arch }}/kube-scheduler"
         dest: "{{ kubernetes_bin_dir }}/kube-scheduler"
         mode: "0755"
-        force: true
 
     - name: download etcd archive
       get_url:
