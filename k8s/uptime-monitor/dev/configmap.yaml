@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: uptime-monitor-config
+  namespace: dev
+data:
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  REDIS_MASTER_NAME: "mymaster"
+  REDIS_DB: "0"
+  TTL_LAST_STATUS_SEC: "120"
+  TTL_FAILCOUNT_SEC: "300"
+  WORKER_TICK_SEC: "1"
+  DEFAULT_SLOW_THRESHOLD_MS: "800"
