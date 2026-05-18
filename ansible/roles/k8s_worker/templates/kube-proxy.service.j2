@@ -1,0 +1,14 @@
+[Unit]
+Description=Kubernetes Kube Proxy
+Documentation=https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/kube-proxy \
+  --config={{ k8s_worker_kube_proxy_config_path }} \
+  --v=2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,23 @@
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: "{{ k8s_worker_kubelet_client_ca_file }}"
+authorization:
+  mode: Webhook
+address: "{{ k8s_worker_kubelet_address }}"
+port: {{ k8s_worker_kubelet_port }}
+readOnlyPort: 0
+cgroupDriver: "{{ k8s_worker_kubelet_cgroup_driver }}"
+clusterDNS:
+{% for dns_ip in k8s_worker_kubelet_cluster_dns %}
+  - "{{ dns_ip }}"
+{% endfor %}
+clusterDomain: "{{ k8s_worker_kubelet_cluster_domain }}"
+staticPodPath: "{{ k8s_worker_kubelet_static_pod_path }}"
+tlsCertFile: "{{ k8s_worker_kubelet_cert_file }}"
+tlsPrivateKeyFile: "{{ k8s_worker_kubelet_key_file }}"

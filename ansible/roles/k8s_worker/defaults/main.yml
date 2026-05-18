@@ -1,0 +1,29 @@
+k8s_worker_kubelet_config_path: /var/lib/kubelet/kubelet-config.yaml
+k8s_worker_kubelet_kubeconfig_path: /var/lib/kubelet/kubeconfig
+k8s_worker_kubelet_unit_path: /etc/systemd/system/kubelet.service
+k8s_worker_kubelet_cert_file: "/var/lib/kubelet/{{ inventory_hostname }}.pem"
+k8s_worker_kubelet_key_file: "/var/lib/kubelet/{{ inventory_hostname }}-key.pem"
+k8s_worker_kubelet_client_ca_file: /var/lib/kubernetes/ca.pem
+k8s_worker_kubelet_cgroup_driver: systemd
+k8s_worker_kubelet_cluster_dns:
+  - 10.32.0.10
+k8s_worker_kubelet_cluster_domain: cluster.local
+k8s_worker_kubelet_runtime_endpoint: unix:///run/containerd/containerd.sock
+k8s_worker_kubelet_hostname_override: "{{ inventory_hostname }}"
+k8s_worker_kubelet_node_ip: "{{ ansible_host }}"
+k8s_worker_kubelet_static_pod_path: /etc/kubernetes/manifests
+k8s_worker_kubelet_address: 0.0.0.0
+k8s_worker_kubelet_port: 10250
+
+k8s_worker_kube_proxy_config_path: /var/lib/kube-proxy/kube-proxy-config.yaml
+k8s_worker_kube_proxy_kubeconfig_path: /var/lib/kube-proxy/kubeconfig
+k8s_worker_kube_proxy_unit_path: /etc/systemd/system/kube-proxy.service
+k8s_worker_kube_proxy_cluster_cidr: 10.200.0.0/16
+k8s_worker_kube_proxy_mode: iptables
+k8s_worker_kube_proxy_bind_address: "{{ ansible_host }}"
+k8s_worker_kube_proxy_hostname_override: "{{ inventory_hostname }}"
+k8s_worker_kube_proxy_healthz_bind_address: 0.0.0.0:10256
+k8s_worker_kube_proxy_metrics_bind_address: 0.0.0.0:10249
+
+k8s_worker_control_plane_host: "{{ groups['k8s_control_plane'][0] }}"
+k8s_worker_control_plane_kubeconfig: "/home/{{ hostvars[k8s_worker_control_plane_host]['ansible_user'] }}/.kube/config"
