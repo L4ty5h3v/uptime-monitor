@@ -73,6 +73,16 @@ jobs:
           helm lint "${HELM_CHART_PATH}" \
             -f "${HELM_CHART_PATH}/values-${DEPLOY_ENV}.yaml"
 
+      - name: Cleanup legacy dev resources before Helm install
+        if: env.DEPLOY_ENV == 'dev'
+        run: |
+          kubectl delete secret uptime-monitor-secrets -n dev --ignore-not-found=true
+          kubectl delete configmap uptime-monitor-config -n dev --ignore-not-found=true
+          kubectl delete service uptime-monitor-api -n dev --ignore-not-found=true
+          kubectl delete deployment uptime-monitor-api -n dev --ignore-not-found=true
+          kubectl delete deployment uptime-monitor-worker -n dev --ignore-not-found=true
+          kubectl delete job uptime-monitor-migrate -n dev --ignore-not-found=true
+
       - name: Deploy application with Helm
         run: |
           helm upgrade --install uptime-monitor "${HELM_CHART_PATH}" \
