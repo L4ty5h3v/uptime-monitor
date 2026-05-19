@@ -58,6 +58,49 @@
     mode: "0644"
   notify: restart grafana
 
+- name: ensure grafana dashboard provisioning directory exists
+  file:
+    path: "{{ grafana_dashboards_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: ensure grafana dashboard files directory exists
+  file:
+    path: "{{ grafana_dashboards_files_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: deploy grafana dashboard provider provisioning
+  template:
+    src: dashboards-provider.yml.j2
+    dest: "{{ grafana_dashboards_dir }}/uptime-monitor.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart grafana
+
+- name: deploy kubernetes overview dashboard
+  copy:
+    src: kubernetes-overview-dashboard.json
+    dest: "{{ grafana_dashboards_files_dir }}/kubernetes-overview-dashboard.json"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart grafana
+
+- name: deploy uptime monitor app dashboard
+  copy:
+    src: uptime-monitor-app-dashboard.json
+    dest: "{{ grafana_dashboards_files_dir }}/uptime-monitor-app-dashboard.json"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart grafana
+
 - name: ensure grafana is enabled and started
   systemd:
     name: "{{ grafana_service_name }}"
