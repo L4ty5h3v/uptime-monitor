@@ -21,7 +21,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/uptime-monitor
+  IMAGE_REPOSITORY: ghcr.io/l4ty5h3v/uptime-monitor
   HELM_CHART_PATH: ./helm/uptime-monitor
 
 jobs:
