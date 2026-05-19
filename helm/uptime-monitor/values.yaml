@@ -18,7 +18,7 @@ config:
   defaultSlowThresholdMs: "800"
 
 secret:
-  databaseUrl: "postgresql+psycopg://CHANGE_ME:CHANGE_ME@10.211.55.3:5432/uptime_monitor"
+  databaseUrl: "postgresql+psycopg://uptime:uptime@10.211.55.3:5432/uptime"
   redisSentinelHosts: "10.211.55.3:26379,10.211.55.3:26380,10.211.55.3:26381"
   redisPassword: ""
 
