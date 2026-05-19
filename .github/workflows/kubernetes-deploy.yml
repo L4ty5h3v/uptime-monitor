@@ -27,6 +27,9 @@ env:
 jobs:
   deploy:
     runs-on: self-hosted
+    concurrency:
+      group: kubernetes-deploy-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
+      cancel-in-progress: false
     env:
       DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
       IMAGE_TAG: ${{ github.sha }}
@@ -65,6 +68,11 @@ jobs:
         env:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
 
+      - name: Lint Helm chart
+        run: |
+          helm lint "${HELM_CHART_PATH}" \
+            -f "${HELM_CHART_PATH}/values-${DEPLOY_ENV}.yaml"
+
       - name: Deploy application with Helm
         run: |
           helm upgrade --install uptime-monitor "${HELM_CHART_PATH}" \
@@ -72,4 +80,16 @@ jobs:
             --create-namespace \
             -f "${HELM_CHART_PATH}/values-${DEPLOY_ENV}.yaml" \
             --set image.repository="${IMAGE_REPOSITORY}" \
-            --set image.tag="${IMAGE_TAG}"
+            --set image.tag="${IMAGE_TAG}" \
+            --wait \
+            --timeout 5m
+
+      - name: Verify rollouts
+        run: |
+          kubectl rollout status deployment/uptime-monitor-api -n "${DEPLOY_ENV}" --timeout=180s
+          kubectl rollout status deployment/uptime-monitor-worker -n "${DEPLOY_ENV}" --timeout=180s
+
+      - name: Show deployed resources
+        run: |
+          kubectl get pods,svc,deploy -n "${DEPLOY_ENV}" -o wide
+          helm status uptime-monitor -n "${DEPLOY_ENV}"
