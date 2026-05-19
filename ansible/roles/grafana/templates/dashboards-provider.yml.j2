@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: uptime-monitor
+    orgId: 1
+    folder: Uptime Monitor
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: {{ grafana_dashboards_files_dir }}
