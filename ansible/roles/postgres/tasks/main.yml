@@ -10,6 +10,46 @@
     enabled: yes
     state: started
 
+- name: discover postgresql.conf path
+  find:
+    paths: "{{ postgres_conf_root }}"
+    patterns: postgresql.conf
+    recurse: yes
+    file_type: file
+  register: postgres_conf_files
+
+- name: discover pg_hba.conf path
+  find:
+    paths: "{{ postgres_conf_root }}"
+    patterns: pg_hba.conf
+    recurse: yes
+    file_type: file
+  register: postgres_hba_files
+
+- name: set postgres config paths
+  set_fact:
+    postgres_conf_path: "{{ postgres_conf_files.files | map(attribute='path') | select('search', '/main/postgresql\\.conf$') | first }}"
+    postgres_hba_path: "{{ postgres_hba_files.files | map(attribute='path') | select('search', '/main/pg_hba\\.conf$') | first }}"
+
+- name: ensure postgres listens on configured addresses
+  lineinfile:
+    path: "{{ postgres_conf_path }}"
+    regexp: '^#?listen_addresses\\s*='
+    line: "listen_addresses = '{{ postgres_listen_addresses }}'"
+  notify: restart postgresql
+
+- name: allow remote postgres clients from configured cidrs
+  blockinfile:
+    path: "{{ postgres_hba_path }}"
+    marker: "# {mark} ANSIBLE MANAGED UPTIME REMOTE ACCESS"
+    block: |
+      {% for cidr in postgres_allowed_cidrs %}
+      host    all             all             {{ '%-18s' | format(cidr) }} scram-sha-256
+      host    {{ postgres_db_name }}          {{ postgres_db_user }}      {{ '%-18s' | format(cidr) }} scram-sha-256
+      {% endfor %}
+  when: postgres_allowed_cidrs | length > 0
+  notify: restart postgresql
+
 - name: ensure postgres backup directory exists
   file:
     path: "{{ postgres_backup_dir }}"

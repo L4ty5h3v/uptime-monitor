@@ -10,6 +10,9 @@ postgres_db_user: uptime
 postgres_db_password: "uptime"
 postgres_db_host: "127.0.0.1"
 postgres_db_port: 5432
+postgres_listen_addresses: localhost
+postgres_allowed_cidrs: []
+postgres_conf_root: /etc/postgresql
 
 postgres_backup_dir: /var/backups/uptime
 postgres_log_dir: /var/log/uptime

@@ -1,6 +1,6 @@
-bind 127.0.0.1
+bind {{ redis_bind_address }}
 port {{ item.port }}
-protected-mode yes
+protected-mode {{ redis_protected_mode }}
 daemonize no
 
 dir {{ redis_data_dir }}/{{ item.port }}
