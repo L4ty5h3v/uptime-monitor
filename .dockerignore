@@ -1,5 +1,6 @@
 .git
 .gitignore
+._*
 .env
 .venv
 venv
