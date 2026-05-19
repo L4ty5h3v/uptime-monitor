@@ -1,6 +1,11 @@
 image:
   tag: dev
 
+api:
+  service:
+    type: NodePort
+    nodePort: 30080
+
 secret:
   databaseUrl: "postgresql+psycopg://uptime:uptime@10.211.55.3:5432/uptime"
   redisSentinelHosts: "10.211.55.3:26379,10.211.55.3:26380,10.211.55.3:26381"

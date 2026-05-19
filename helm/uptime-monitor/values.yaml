@@ -33,6 +33,7 @@ api:
   service:
     type: ClusterIP
     port: 80
+    nodePort: null
   readinessProbe:
     initialDelaySeconds: 5
     periodSeconds: 10
