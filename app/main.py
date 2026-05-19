@@ -1,4 +1,5 @@
 import time
+import logging
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import Response
@@ -22,6 +23,7 @@ from .metrics import (
 )
 
 app = FastAPI(title="Uptime Monitor")
+logger = logging.getLogger(__name__)
 
 
 def normalize_path(path: str) -> str:
@@ -42,6 +44,18 @@ def refresh_target_metrics(db: Session) -> None:
 
     UPTIME_TARGETS_TOTAL.set(total)
     UPTIME_TARGETS_ENABLED.set(enabled)
+
+
+def load_cached_last_status(r, target_id: int):
+    try:
+        return cache_get_last(r, target_id)
+    except Exception:
+        logger.warning(
+            "cache lookup failed for target_id=%s; falling back to database",
+            target_id,
+            exc_info=True,
+        )
+        return None
 
 
 @app.middleware("http")
@@ -139,7 +153,7 @@ def status_all(db: Session = Depends(get_db)):
 
     out: list[LastStatus] = []
     for tid in targets:
-        cached = cache_get_last(r, tid)
+        cached = load_cached_last_status(r, tid)
         if cached:
             UPTIME_CACHE_HITS_TOTAL.inc()
             out.append(LastStatus(**cached))
@@ -170,7 +184,7 @@ def status_all(db: Session = Depends(get_db)):
 @app.get("/status/{target_id}", response_model=LastStatus)
 def status_one(target_id: int, db: Session = Depends(get_db)):
     r = get_redis_master()
-    cached = cache_get_last(r, target_id)
+    cached = load_cached_last_status(r, target_id)
 
     if cached:
         UPTIME_CACHE_HITS_TOTAL.inc()
