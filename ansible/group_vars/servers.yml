@@ -1,0 +1,10 @@
+postgres_db_host: 10.211.55.3
+postgres_listen_addresses: "*"
+postgres_allowed_cidrs:
+  - 10.211.55.0/24
+  - 10.200.0.0/16
+
+redis_bind_address: 0.0.0.0
+redis_protected_mode: "no"
+redis_master_host: 10.211.55.3
+redis_master_announce_host: 10.211.55.3
