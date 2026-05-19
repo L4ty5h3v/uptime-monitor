@@ -14,7 +14,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: migrate
-          image: ghcr.io/l4ty5h3v/uptime-monitor:latest
+          image: ghcr.io/l4ty5h3v/uptime-monitor:dev
           imagePullPolicy: IfNotPresent
           command: ["alembic", "upgrade", "head"]
           envFrom:
