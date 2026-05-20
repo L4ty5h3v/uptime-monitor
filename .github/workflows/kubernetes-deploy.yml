@@ -1,0 +1,105 @@
+name: Kubernetes deploy pipeline
+
+on:
+  push:
+    branches:
+      - kubernetes
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target Kubernetes namespace"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_REPOSITORY: ghcr.io/l4ty5h3v/uptime-monitor
+  HELM_CHART_PATH: ./helm/uptime-monitor
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    concurrency:
+      group: kubernetes-deploy-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
+      cancel-in-progress: false
+    env:
+      DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        run: |
+          docker build -t "${IMAGE_REPOSITORY}:${IMAGE_TAG}" .
+          docker push "${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.36.0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "${HOME}/.kube"
+          echo "${KUBECONFIG_B64}" | base64 --decode > "${HOME}/.kube/config"
+          chmod 600 "${HOME}/.kube/config"
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+
+      - name: Lint Helm chart
+        run: |
+          helm lint "${HELM_CHART_PATH}" \
+            -f "${HELM_CHART_PATH}/values-${DEPLOY_ENV}.yaml"
+
+      - name: Cleanup legacy dev resources before Helm install
+        if: env.DEPLOY_ENV == 'dev'
+        run: |
+          kubectl delete secret uptime-monitor-secrets -n dev --ignore-not-found=true
+          kubectl delete configmap uptime-monitor-config -n dev --ignore-not-found=true
+          kubectl delete service uptime-monitor-api -n dev --ignore-not-found=true
+          kubectl delete deployment uptime-monitor-api -n dev --ignore-not-found=true
+          kubectl delete deployment uptime-monitor-worker -n dev --ignore-not-found=true
+          kubectl delete job uptime-monitor-migrate -n dev --ignore-not-found=true
+
+      - name: Deploy application with Helm
+        run: |
+          helm upgrade --install uptime-monitor "${HELM_CHART_PATH}" \
+            --namespace "${DEPLOY_ENV}" \
+            --create-namespace \
+            -f "${HELM_CHART_PATH}/values-${DEPLOY_ENV}.yaml" \
+            --set image.repository="${IMAGE_REPOSITORY}" \
+            --set image.tag="${IMAGE_TAG}" \
+            --wait \
+            --timeout 5m
+
+      - name: Verify rollouts
+        run: |
+          kubectl rollout status deployment/uptime-monitor-api -n "${DEPLOY_ENV}" --timeout=180s
+          kubectl rollout status deployment/uptime-monitor-worker -n "${DEPLOY_ENV}" --timeout=180s
+
+      - name: Show deployed resources
+        run: |
+          kubectl get pods,svc,deploy -n "${DEPLOY_ENV}" -o wide
+          helm status uptime-monitor -n "${DEPLOY_ENV}"
