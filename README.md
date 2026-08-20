@@ -6,7 +6,7 @@
 ![Helm](https://img.shields.io/badge/Helm-ready-0F1689?logo=helm&logoColor=white)
 ![Ansible](https://img.shields.io/badge/Ansible-ready-EE0000?logo=ansible&logoColor=white)
 ![Prometheus/Grafana](https://img.shields.io/badge/Observability-Prometheus%20%2F%20Grafana-E6522C?logo=prometheus&logoColor=white)
-![GitHub Actions](https://github.com/N4L34/uptime-monitor/actions/workflows/kubernetes-deploy.yml/badge.svg)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)
 
 Uptime Monitor is a portfolio-grade SRE project for monitoring HTTP endpoints end to end. It combines a FastAPI API, a dedicated background worker, PostgreSQL, Redis Sentinel, Docker, Kubernetes, Helm, Ansible, Prometheus/Grafana, and an ELK log pipeline into one coherent delivery story.
 
