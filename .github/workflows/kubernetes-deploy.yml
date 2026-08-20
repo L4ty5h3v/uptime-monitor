@@ -3,7 +3,7 @@ name: Kubernetes deploy pipeline
 on:
   push:
     branches:
-      - kubernetes
+      - main
   workflow_dispatch:
     inputs:
       environment:
@@ -84,6 +84,10 @@ jobs:
           kubectl delete job uptime-monitor-migrate -n dev --ignore-not-found=true
 
       - name: Deploy application with Helm
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_SENTINEL_HOSTS: ${{ secrets.REDIS_SENTINEL_HOSTS }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: |
           helm upgrade --install uptime-monitor "${HELM_CHART_PATH}" \
             --namespace "${DEPLOY_ENV}" \
@@ -91,9 +95,11 @@ jobs:
             -f "${HELM_CHART_PATH}/values-${DEPLOY_ENV}.yaml" \
             --set image.repository="${IMAGE_REPOSITORY}" \
             --set image.tag="${IMAGE_TAG}" \
+            --set-string secret.databaseUrl="${DATABASE_URL}" \
+            --set-string secret.redisSentinelHosts="${REDIS_SENTINEL_HOSTS}" \
+            --set-string secret.redisPassword="${REDIS_PASSWORD}" \
             --wait \
             --timeout 5m
-
       - name: Verify rollouts
         run: |
           kubectl rollout status deployment/uptime-monitor-api -n "${DEPLOY_ENV}" --timeout=180s

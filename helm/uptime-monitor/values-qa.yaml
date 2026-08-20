@@ -1,0 +1,11 @@
+image:
+  tag: qa
+
+api:
+  replicas: 1
+
+worker:
+  replicas: 1
+
+ingress:
+  enabled: false

@@ -1,0 +1,9 @@
+- name: ensure monitoring namespace exists
+  command: kubectl --kubeconfig=/home/master1/.kube/config apply -f -
+  args:
+    stdin: "{{ lookup('template', 'monitoring-namespace.yaml.j2') }}"
+
+- name: deploy kube-state-metrics resources
+  command: kubectl --kubeconfig=/home/master1/.kube/config apply -f -
+  args:
+    stdin: "{{ lookup('template', 'kube-state-metrics.yaml.j2') }}"

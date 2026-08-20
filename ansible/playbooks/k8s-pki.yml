@@ -1,0 +1,24 @@
+- hosts: localhost
+  gather_facts: no
+  connection: local
+  tasks:
+    - name: generate local PKI assets
+      import_role:
+        name: k8s_pki
+        tasks_from: local
+
+- hosts: k8s_control_plane
+  become: yes
+  tasks:
+    - name: distribute control plane PKI assets
+      import_role:
+        name: k8s_pki
+        tasks_from: control_plane
+
+- hosts: k8s_cluster
+  become: yes
+  tasks:
+    - name: distribute cluster node PKI assets
+      import_role:
+        name: k8s_pki
+        tasks_from: cluster

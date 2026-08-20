@@ -1,0 +1,27 @@
+[Unit]
+Description=Kubernetes Controller Manager
+Documentation=https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/
+After=network-online.target kube-apiserver.service
+Wants=network-online.target
+Requires=kube-apiserver.service
+
+[Service]
+ExecStart=/usr/local/bin/kube-controller-manager \
+  --allocate-node-cidrs=true \
+  --bind-address=0.0.0.0 \
+  --cluster-cidr={{ k8s_cluster_cidr }} \
+  --cluster-name={{ k8s_cluster_name }} \
+  --cluster-signing-cert-file={{ k8s_apiserver_client_ca_file }} \
+  --cluster-signing-key-file={{ k8s_ca_key_file }} \
+  --kubeconfig={{ k8s_controller_manager_kubeconfig }} \
+  --leader-elect=true \
+  --root-ca-file={{ k8s_apiserver_client_ca_file }} \
+  --service-account-private-key-file={{ k8s_service_account_signing_key_file }} \
+  --service-cluster-ip-range={{ k8s_service_cluster_ip_range }} \
+  --use-service-account-credentials=true \
+  --v=2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

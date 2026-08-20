@@ -1,0 +1,12 @@
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = {{ cert_extended_key_usages | join(', ') }}
+{% if cert_subject_alt_names %}
+subjectAltName = @alt_names
+
+[ alt_names ]
+{% for san in cert_subject_alt_names %}
+{{ 'IP' if san | regex_search('^[0-9.]+$') else 'DNS' }}.{{ loop.index }} = {{ san }}
+{% endfor %}
+{% endif %}

@@ -1,0 +1,56 @@
+- name: copy control plane CA bundle
+  copy:
+    src: "{{ k8s_pki_local_certs_dir }}/{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "ca.pem", dest: "/var/lib/kubernetes/ca.pem", mode: "0644" }
+    - { src: "ca-key.pem", dest: "/var/lib/kubernetes/ca-key.pem", mode: "0600" }
+    - { src: "kubernetes.pem", dest: "/var/lib/kubernetes/kubernetes.pem", mode: "0644" }
+    - { src: "kubernetes-key.pem", dest: "/var/lib/kubernetes/kubernetes-key.pem", mode: "0600" }
+    - { src: "kube-apiserver-etcd-client.pem", dest: "/var/lib/kubernetes/kube-apiserver-etcd-client.pem", mode: "0644" }
+    - { src: "kube-apiserver-etcd-client-key.pem", dest: "/var/lib/kubernetes/kube-apiserver-etcd-client-key.pem", mode: "0600" }
+    - { src: "service-account.pem", dest: "/var/lib/kubernetes/service-account.pem", mode: "0644" }
+    - { src: "service-account-key.pem", dest: "/var/lib/kubernetes/service-account-key.pem", mode: "0600" }
+
+- name: copy etcd certificates
+  copy:
+    src: "{{ k8s_pki_local_certs_dir }}/{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "ca.pem", dest: "/etc/etcd/ca.pem", mode: "0644" }
+    - { src: "etcd-server.pem", dest: "/etc/etcd/etcd-server.pem", mode: "0644" }
+    - { src: "etcd-server-key.pem", dest: "/etc/etcd/etcd-server-key.pem", mode: "0600" }
+
+- name: copy control plane kubeconfigs
+  copy:
+    src: "{{ k8s_pki_local_kubeconfigs_dir }}/{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - { src: "kube-controller-manager.kubeconfig", dest: "/var/lib/kubernetes/kube-controller-manager.kubeconfig" }
+    - { src: "kube-scheduler.kubeconfig", dest: "/var/lib/kubernetes/kube-scheduler.kubeconfig" }
+    - { src: "kube-proxy.kubeconfig", dest: "/var/lib/kube-proxy/kubeconfig" }
+
+- name: create admin kubeconfig directory for control plane user
+  file:
+    path: "/home/{{ hostvars[inventory_hostname]['ansible_user'] }}/.kube"
+    state: directory
+    owner: "{{ hostvars[inventory_hostname]['ansible_user'] }}"
+    group: "{{ hostvars[inventory_hostname]['ansible_user'] }}"
+    mode: "0700"
+
+- name: install admin kubeconfig for control plane user
+  copy:
+    src: "{{ k8s_pki_local_kubeconfigs_dir }}/admin.kubeconfig"
+    dest: "/home/{{ hostvars[inventory_hostname]['ansible_user'] }}/.kube/config"
+    owner: "{{ hostvars[inventory_hostname]['ansible_user'] }}"
+    group: "{{ hostvars[inventory_hostname]['ansible_user'] }}"
+    mode: "0600"

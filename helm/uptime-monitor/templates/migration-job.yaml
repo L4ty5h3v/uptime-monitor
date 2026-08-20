@@ -1,0 +1,38 @@
+{{- if .Values.migration.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "uptime-monitor.fullname" . }}-migrate
+  labels:
+    {{- include "uptime-monitor.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migration.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.migration.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "uptime-monitor.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "uptime-monitor.fullname" . }}-config
+            - secretRef:
+                name: {{ include "uptime-monitor.fullname" . }}-secrets
+{{- end }}

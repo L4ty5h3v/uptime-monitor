@@ -1,0 +1,7 @@
+- hosts: k8s_cluster
+  become: yes
+  vars:
+    node_exporter_textfile_owner: "{{ node_exporter_user }}"
+    node_exporter_textfile_group: "{{ node_exporter_group }}"
+  roles:
+    - node_exporter

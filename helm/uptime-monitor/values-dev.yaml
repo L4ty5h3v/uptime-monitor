@@ -1,0 +1,10 @@
+image:
+  tag: dev
+
+api:
+  service:
+    type: NodePort
+    nodePort: 30080
+
+ingress:
+  enabled: false

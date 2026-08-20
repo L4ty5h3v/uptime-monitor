@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "uptime-monitor.fullname" . }}-config
+  labels:
+    {{- include "uptime-monitor.labels" . | nindent 4 }}
+data:
+  API_HOST: {{ .Values.config.apiHost | quote }}
+  API_PORT: {{ .Values.config.apiPort | quote }}
+  REDIS_MASTER_NAME: {{ .Values.config.redisMasterName | quote }}
+  REDIS_DB: {{ .Values.config.redisDb | quote }}
+  TTL_LAST_STATUS_SEC: {{ .Values.config.ttlLastStatusSec | quote }}
+  TTL_FAILCOUNT_SEC: {{ .Values.config.ttlFailcountSec | quote }}
+  WORKER_TICK_SEC: {{ .Values.config.workerTickSec | quote }}
+  DEFAULT_SLOW_THRESHOLD_MS: {{ .Values.config.defaultSlowThresholdMs | quote }}

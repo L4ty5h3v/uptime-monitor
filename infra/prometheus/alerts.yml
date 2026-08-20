@@ -1,0 +1,38 @@
+groups:
+  - name: kubernetes.rules
+    rules:
+      - alert: KubernetesNodeExporterDown
+        expr: up{job="node-k8s"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kubernetes node exporter is down"
+          description: "Prometheus cannot scrape node exporter on {{ $labels.instance }}."
+
+      - alert: KubernetesNodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kubernetes node is NotReady"
+          description: "Node {{ $labels.node }} has not been Ready for at least 2 minutes."
+
+      - alert: KubernetesPodCrashLooping
+        expr: max_over_time(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod is CrashLooping"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is in CrashLoopBackOff."
+
+      - alert: KubernetesDeploymentReplicasMismatch
+        expr: kube_deployment_spec_replicas{namespace=~"dev|qa|prod"} > kube_deployment_status_replicas_available{namespace=~"dev|qa|prod"}
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deployment has unavailable replicas"
+          description: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} does not have all replicas available."

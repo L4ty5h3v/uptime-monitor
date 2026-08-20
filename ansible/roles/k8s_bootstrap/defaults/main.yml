@@ -1,0 +1,19 @@
+k8s_required_modules:
+  - overlay
+  - br_netfilter
+
+k8s_sysctl_params:
+  net.bridge.bridge-nf-call-iptables: "1"
+  net.bridge.bridge-nf-call-ip6tables: "1"
+  net.ipv4.ip_forward: "1"
+
+k8s_bootstrap_packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - software-properties-common
+  - containerd
+
+containerd_config_path: /etc/containerd/config.toml

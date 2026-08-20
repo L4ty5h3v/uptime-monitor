@@ -23,8 +23,8 @@
   file:
     path: "{{ node_exporter_textfile_dir }}"
     state: directory
-    owner: postgres
-    group: postgres
+    owner: "{{ node_exporter_textfile_owner }}"
+    group: "{{ node_exporter_textfile_group }}"
     mode: "0755"
 
 - name: download node_exporter archive

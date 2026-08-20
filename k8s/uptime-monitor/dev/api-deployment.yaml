@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uptime-monitor-api
+  namespace: dev
+  labels:
+    app.kubernetes.io/name: uptime-monitor
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: uptime-monitor
+      app.kubernetes.io/component: api
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: uptime-monitor
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/l4ty5h3v/uptime-monitor:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: uptime-monitor-config
+            - secretRef:
+                name: uptime-monitor-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi

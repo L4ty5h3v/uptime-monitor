@@ -1,0 +1,88 @@
+- name: ensure worker configuration directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/kubernetes/manifests
+    - /var/lib/kubelet
+    - /var/lib/kube-proxy
+
+- name: install kubelet configuration
+  template:
+    src: kubelet-config.yaml.j2
+    dest: "{{ k8s_worker_kubelet_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kubelet
+
+- name: install kubelet systemd unit
+  template:
+    src: kubelet.service.j2
+    dest: "{{ k8s_worker_kubelet_unit_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kubelet
+
+- name: install kube-proxy configuration
+  template:
+    src: kube-proxy-config.yaml.j2
+    dest: "{{ k8s_worker_kube_proxy_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kube-proxy
+
+- name: install kube-proxy systemd unit
+  template:
+    src: kube-proxy.service.j2
+    dest: "{{ k8s_worker_kube_proxy_unit_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kube-proxy
+
+- name: ensure kubelet service is enabled and started
+  systemd:
+    name: kubelet
+    daemon_reload: yes
+    enabled: yes
+    state: started
+
+- name: ensure kube-proxy service is enabled and started
+  systemd:
+    name: kube-proxy
+    enabled: yes
+    state: started
+
+- name: wait for kubelet secure port
+  wait_for:
+    host: 127.0.0.1
+    port: "{{ k8s_worker_kubelet_port }}"
+    delay: 2
+    timeout: 60
+
+- name: wait for kube-proxy health port
+  wait_for:
+    host: 127.0.0.1
+    port: 10256
+    delay: 2
+    timeout: 60
+
+- name: wait for cluster nodes to register
+  command: >
+    /usr/local/bin/kubectl
+    --kubeconfig={{ k8s_worker_control_plane_kubeconfig }}
+    get nodes --no-headers
+  delegate_to: "{{ k8s_worker_control_plane_host }}"
+  become: yes
+  register: k8s_worker_registered_nodes
+  changed_when: false
+  run_once: true
+  retries: 12
+  delay: 5
+  until: k8s_worker_registered_nodes.stdout_lines | length >= groups['k8s_cluster'] | length
