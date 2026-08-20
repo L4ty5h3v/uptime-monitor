@@ -1,259 +1,174 @@
 # Uptime Monitor
 
-Uptime Monitor — сервис для мониторинга доступности сайтов и HTTP-эндпоинтов.  
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes&logoColor=white)
+![Helm](https://img.shields.io/badge/Helm-ready-0F1689?logo=helm&logoColor=white)
+![Ansible](https://img.shields.io/badge/Ansible-ready-EE0000?logo=ansible&logoColor=white)
+![Prometheus/Grafana](https://img.shields.io/badge/Observability-Prometheus%20%2F%20Grafana-E6522C?logo=prometheus&logoColor=white)
+![GitHub Actions](https://github.com/N4L34/uptime-monitor/actions/workflows/kubernetes-deploy.yml/badge.svg)
 
-## Что умеет проект
+Uptime Monitor is a portfolio-grade SRE project for monitoring HTTP endpoints end to end. It combines a FastAPI API, a dedicated background worker, PostgreSQL, Redis Sentinel, Docker, Kubernetes, Helm, Ansible, Prometheus/Grafana, and an ELK log pipeline into one coherent delivery story.
 
-- хранит цели мониторинга в `PostgreSQL`
-- периодически проверяет их фоновым `worker`
-- сохраняет историю проверок
-- кэширует актуальный статус в `Redis` через `Redis Sentinel`
-- отдаёт HTTP API для управления целями и просмотра статусов
-- экспортирует метрики в `Prometheus`
-- централизованно собирает логи в `Elasticsearch`
-- визуализирует метрики и логи в `Grafana`
-- считает `SLA / SLO / Error Budget`
+## Tech Stack
 
-## Архитектура
+- FastAPI application with a separate worker process
+- PostgreSQL for durable target and check history storage
+- Redis Sentinel for cached status and resilience experiments
+- Docker for containerized packaging
+- Kubernetes and Helm for environment-specific deployment
+- Ansible for infrastructure provisioning and service automation
+- Prometheus, Grafana, Elasticsearch, Logstash, Filebeat, and rsyslog for observability
+- GitHub Actions and GHCR for build, ship, and rollout automation
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Users
+    u[SREs / Operators / Reviewers]
+  end
+
+  subgraph App
+    api[FastAPI API]
+    worker[Background worker]
+  end
+
+  subgraph Data
+    pg[(PostgreSQL)]
+    redis[(Redis Sentinel)]
+  end
+
+  subgraph Observability
+    prom[Prometheus]
+    grafana[Grafana]
+    filebeat[Filebeat]
+    logstash[Logstash]
+    elastic[Elasticsearch]
+  end
+
+  subgraph Delivery
+    gha[GitHub Actions]
+    ghcr[GHCR image registry]
+    helm[Helm]
+    k8s[Kubernetes]
+    ansible[Ansible]
+  end
+
+  u --> api
+  api --> pg
+  api --> redis
+  worker --> pg
+  worker --> redis
+  api --> prom
+  worker --> prom
+  prom --> grafana
+  api --> filebeat
+  worker --> filebeat
+  filebeat --> logstash
+  logstash --> elastic
+  gha --> ghcr
+  ghcr --> helm
+  helm --> k8s
+  ansible --> k8s
+  ansible --> pg
+  ansible --> redis
+```
+
+## What This Project Demonstrates
+
+- a clean split between API traffic and background execution
+- PostgreSQL plus Redis Sentinel as a realistic production data layer
+- container-first packaging with Docker
+- Kubernetes and Helm deployment with `dev`, `qa`, and `prod` values
+- GitHub Actions -> GHCR -> Helm -> rollout verification delivery flow
+- Ansible-driven provisioning for application and infrastructure services
+- Prometheus and Grafana for metrics, dashboards, and SLO/error-budget experiments
+- ELK-based log shipping, indexing, and retention
+- health probes, metrics endpoints, and operational readiness thinking
+
+## Kubernetes and Helm
+
+The Helm chart lives in [`helm/uptime-monitor`](./helm/uptime-monitor) and supports environment-specific values files:
+
+- [`values-dev.yaml`](./helm/uptime-monitor/values-dev.yaml)
+- [`values-qa.yaml`](./helm/uptime-monitor/values-qa.yaml)
+- [`values-prod.yaml`](./helm/uptime-monitor/values-prod.yaml)
+
+Deployment is automated through [`.github/workflows/kubernetes-deploy.yml`](./.github/workflows/kubernetes-deploy.yml):
+
+- builds a Docker image
+- pushes it to GHCR
+- installs `kubectl` and `Helm`
+- lints the chart
+- injects runtime secrets from GitHub Secrets
+- runs a Helm upgrade/install
+- verifies API and worker rollouts
+
+## CI/CD
+
+The pipeline is intentionally portfolio-friendly and production-shaped:
+
+- `main` branch triggers the Kubernetes deployment workflow
+- GitHub Actions builds the image from the exact commit SHA
+- GHCR stores the image artifact
+- Helm deploys into the selected namespace
+- rollout checks confirm the workload is healthy before the job exits
+
+## Ansible
+
+Ansible handles the infrastructure side of the story:
+
+- provisioning of app, database, cache, exporter, and observability services
+- Kubernetes bootstrap, control plane, worker, and addon roles
+- repeatable systemd/service management
+- environment-specific group variables and inventory
+
+Useful entry points:
+
+- [`ansible/playbooks/site.yml`](./ansible/playbooks/site.yml)
+- [`ansible/playbooks/k8s-control-plane.yml`](./ansible/playbooks/k8s-control-plane.yml)
+- [`ansible/playbooks/k8s-worker.yml`](./ansible/playbooks/k8s-worker.yml)
+- [`ansible/playbooks/k8s-monitoring.yml`](./ansible/playbooks/k8s-monitoring.yml)
+
+## Observability
+
+This repository is built to be observable, not just runnable:
+
+- Prometheus scrapes API, worker, node, PostgreSQL, and Redis metrics
+- Grafana presents service health, latency, and error-budget views
+- the log pipeline moves application and system logs through Filebeat and Logstash into Elasticsearch
+- ELK retention is configured for a realistic operations lifecycle
+- SLO and error-budget experiments are part of the dashboarding story
+
+## Quick Start
+
+```bash
+git clone https://github.com/N4L34/uptime-monitor.git
+cd uptime-monitor
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+Then open:
+
+- API docs: `http://127.0.0.1:8000/docs`
+- metrics: `http://127.0.0.1:8000/metrics`
+- example API flows: [`docs/api-examples.md`](./docs/api-examples.md)
+
+## Repository Layout
 
 ```text
-                           +-------------------+
-                           |      Grafana      |
-                           | метрики, логи,    |
-                           | SLO, алерты       |
-                           +---------+---------+
-                                     |
-                  +------------------+------------------+
-                  |                                     |
-                  v                                     v
-          +-------+--------+                    +-------+--------+
-          |   Prometheus   |                    | Elasticsearch  |
-          |   метрики      |                    |    логи        |
-          +-------+--------+                    +-------+--------+
-                  |                                     ^
-                  |                                     |
-      +-----------+------------+                +-------+--------+
-      |           |            |                |    Logstash    |
-      v           v            v                +-------+--------+
-  API /metrics  Worker      Exporters                   ^
-                           node/postgres/redis          |
-                                                        |
-                                                +-------+--------+
-                                                | Filebeat       |
-                                                | + rsyslog      |
-                                                +-------+--------+
-                                                        |
-                         +------------------------------+------------------------------+
-                         |                                                             |
-                         v                                                             v
-                  app / backup / redis logs                                  syslog / service logs
+app/           FastAPI app, worker, metrics, cache, and config
+ansible/       provisioning, inventory, roles, and playbooks
+helm/          Kubernetes Helm chart and environment values
+k8s/           raw Kubernetes manifests and examples
+infra/         Prometheus, logging, and service configuration
+migrations/    database migrations
+docs/          short supporting documentation
+tests/         automated tests
 ```
 
-## Основные компоненты
+## Why It Stands Out
 
-### Приложение
-
-- `app/main.py` — API на `FastAPI`
-- `app/worker.py` — фоновый процесс выполнения проверок
-- `app/checker.py` — HTTP-проверка целевых URL
-- `app/metrics.py` — метрики API и worker для `Prometheus`
-- `app/redis_cache.py` — работа с `Redis` и `Sentinel`
-
-### Хранение данных
-
-- `PostgreSQL` — постоянное хранилище целей и истории проверок
-- `Redis + Redis Sentinel` — кэш последнего статуса и счётчиков ошибок
-- `Alembic` — миграции схемы БД
-
-### Инфраструктура
-
-- `Ansible` — деплой и эксплуатационные playbook'и
-- `systemd` — управление сервисами
-- `Prometheus` — сбор метрик
-- `Grafana` — дашборды и алерты
-- `Elasticsearch` — хранение и поиск логов
-- `Logstash` — маршрутизация и индексация логов
-- `Filebeat` — сбор файловых логов
-- `node_exporter`, `postgres_exporter`, `redis_exporter` — системные и инфраструктурные метрики
-
-## Наблюдаемость
-
-### Метрики
-
-Проект экспортирует и собирает:
-
-- HTTP-метрики API
-- метрики worker по успехам и ошибкам проверок
-- latency проверок
-- метрики `Redis`, `PostgreSQL` и хоста
-- метрики `PostgreSQL` backup через `node_exporter textfile collector`
-
-`Prometheus` опрашивает:
-
-- `127.0.0.1:8000/metrics` — API
-- `127.0.0.1:9101/metrics` — worker
-- `127.0.0.1:9100` — `node_exporter`
-- `127.0.0.1:9121` — `redis_exporter`
-- `127.0.0.1:9187` — `postgres_exporter`
-
-### Логи
-
-Собираются следующие логи:
-
-- `/var/log/uptime/*.log`
-- `/var/log/postgres-backup/*.log`
-- `/var/log/redis/redis-*.log`
-- `/var/log/redis/sentinel-*.log`
-- системные события через `syslog -> Logstash -> Elasticsearch`
-
-Логи индексируются в `Elasticsearch` по схеме:
-
-- `uptime-logs-app-YYYY.MM.DD`
-- `uptime-logs-backup-YYYY.MM.DD`
-- `uptime-logs-redis-YYYY.MM.DD`
-- `uptime-logs-sentinel-YYYY.MM.DD`
-- `uptime-logs-syslog-YYYY.MM.DD`
-
-Для индексов `uptime-logs-*` применяется `ILM policy`, которая удаляет старые индексы через `7` дней.
-
-### SLA / SLO / Error Budget
-
-В проекте используется простой контракт доступности:
-
-- `SLI` — доля успешных проверок
-- `SLO` — не менее `90%` успешных проверок за последние `24h`
-- `Error Budget` — не более `10%` неуспешных проверок за те же `24h`
-
-В `Grafana` для этого вынесен отдельный дашборд с панелями:
-
-- `Availability 24h`
-- `Failure Rate 24h`
-- `Budget Consumed`
-- `Error Budget Remaining`
-
-## Структура репозитория
-
-```text
-app/                 код приложения и worker
-ansible/             inventory, роли и playbook'и
-infra/               systemd, Redis, Prometheus и служебные конфиги
-migrations/          миграции Alembic
-scripts/             вспомогательные скрипты
-snapshots/           экспортированные артефакты и снимки
-requirements.txt     Python-зависимости
-README.md            описание проекта
-```
-
-## Важные playbook'и
-
-Из директории `ansible/`:
-
-- `playbooks/deploy_app.yml` — деплой приложения
-- `playbooks/migration.yml` — применение миграций
-- `playbooks/monitoring.yml` — `Prometheus`, `Grafana`, exporters
-- `playbooks/elasticsearch_install.yml` — `Elasticsearch` cluster и `Filebeat`
-- `playbooks/logstash.yml` — `Logstash`
-- `playbooks/site.yml` — базовая инфраструктура
-
-## Основные сервисы
-
-- `uptime-api`
-- `uptime-worker`
-- `uptime-migrate`
-- `redis@6379`
-- `redis@6380`
-- `redis-sentinel@26379`
-- `redis-sentinel@26380`
-- `redis-sentinel@26381`
-
-## Быстрые команды API
-
-### Проверка health
-
-```bash
-curl http://127.0.0.1:8000/health
-```
-
-### Swagger UI
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-### Создание цели мониторинга
-
-```bash
-curl -X POST http://127.0.0.1:8000/targets \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Example",
-    "url": "https://example.com",
-    "interval_sec": 30,
-    "timeout_ms": 3000,
-    "enabled": true
-  }'
-```
-
-### Получение списка целей
-
-```bash
-curl http://127.0.0.1:8000/targets
-```
-
-### Получение текущего статуса
-
-```bash
-curl http://127.0.0.1:8000/status
-curl http://127.0.0.1:8000/status/1
-```
-
-### Получение истории проверок
-
-```bash
-curl http://127.0.0.1:8000/history/1
-curl "http://127.0.0.1:8000/history/1?limit=10"
-```
-
-### Обновление цели
-
-```bash
-curl -X PATCH http://127.0.0.1:8000/targets/1 \
-  -H "Content-Type: application/json" \
-  -d '{"enabled": false}'
-```
-
-### Удаление цели
-
-```bash
-curl -X DELETE http://127.0.0.1:8000/targets/1
-```
-
-## Что уже реализовано в модуле 2
-
-- экспорт метрик приложения через `/metrics`
-- отдельные метрики worker на `9101`
-- `Prometheus` + `Grafana`
-- `node_exporter`, `postgres_exporter`, `redis_exporter`
-- логирование через `Filebeat / rsyslog -> Logstash -> Elasticsearch`
-- кластер `Elasticsearch` из трёх нод
-- индексация логов и `ILM`
-- логовые и метрик-дашборды в `Grafana`
-- расчёт `Availability`, `Failure Rate` и `Error Budget`
-
-## Полезные артефакты
-
-Экспорт настроек `Grafana` сохраняется в:
-
-- `snapshots/grafana-export/`
-
-Там лежат:
-
-- JSON дашбордов
-- список datasources
-- alert rules
-- contact points
-- notification policies
-
-## Итог
-
-Этот репозиторий содержит не только код самого `uptime-monitor`, но и полноценную инфраструктуру для деплоя, мониторинга, логирования, визуализации, алертинга и расчёта бюджета ошибок.  
+This is not just an app repo. It is a compact, realistic operations showcase that ties together application code, runtime packaging, deployment automation, monitoring, logging, and rollout safety into one readable system.
