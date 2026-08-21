@@ -1,10 +1,10 @@
-name: Ansible deploy pipeline
+name: Manual Ansible deploy
 
 on:
-  push:
-    branches:
-      - main
-      - module-2-monitoring
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   deploy:

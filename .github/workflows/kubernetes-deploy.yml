@@ -1,4 +1,4 @@
-name: Kubernetes deploy pipeline
+name: Manual Kubernetes deploy
 
 on:
   workflow_dispatch:
@@ -25,10 +25,10 @@ jobs:
   deploy:
     runs-on: self-hosted
     concurrency:
-      group: kubernetes-deploy-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
+      group: kubernetes-deploy-${{ inputs.environment }}
       cancel-in-progress: false
     env:
-      DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
+      DEPLOY_ENV: ${{ inputs.environment }}
       IMAGE_TAG: ${{ github.sha }}
 
     steps:

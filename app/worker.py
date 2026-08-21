@@ -33,7 +33,9 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 async def run_once(db: Session, r):
-    targets = db.execute(select(Target).where(Target.enabled == True)).scalars().all()
+    targets = db.execute(
+        select(Target).where(Target.enabled.is_(True))
+    ).scalars().all()
 
     UPTIME_TARGETS_ENABLED.set(len(targets))
     UPTIME_WORKER_TARGETS_PER_CYCLE.set(len(targets))

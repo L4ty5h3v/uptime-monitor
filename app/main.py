@@ -39,7 +39,7 @@ def normalize_path(path: str) -> str:
 def refresh_target_metrics(db: Session) -> None:
     total = db.execute(select(func.count()).select_from(Target)).scalar_one()
     enabled = db.execute(
-        select(func.count()).select_from(Target).where(Target.enabled == True)
+        select(func.count()).select_from(Target).where(Target.enabled.is_(True))
     ).scalar_one()
 
     UPTIME_TARGETS_TOTAL.set(total)
@@ -148,7 +148,7 @@ def delete_target(target_id: int, db: Session = Depends(get_db)):
 def status_all(db: Session = Depends(get_db)):
     r = get_redis_master()
     targets = db.execute(
-        select(Target.id).where(Target.enabled == True)
+        select(Target.id).where(Target.enabled.is_(True))
     ).scalars().all()
 
     out: list[LastStatus] = []
